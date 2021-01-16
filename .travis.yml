@@ -1,8 +1,8 @@
-image: python:3.7
+language: python
 
 before_script:
   - pip install .
-  - python3 --version
+  - python --version
 
 stages:
     - Static Analysis
