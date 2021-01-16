@@ -1,21 +1,11 @@
 language: python
 
-before_script:
-  - pip install .
-  - python --version
+install:
+    - pip install .
+    - pip install flake8
+    - pip install pytest
 
-stages:
-    - Static Analysis
-    - Code Test
-
-flake8:
-    stage: Static Analysis
-    script:
-        - pip install flake8
-        - flake8 fcat/
-
-pytests:
-    stage: Code Test
-    script:
-        - pip install pytest
-        - pytest tests/
+script:
+    - python --version
+    - flake8 fcat/
+    - pytest tests/
