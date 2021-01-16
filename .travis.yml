@@ -1,0 +1,21 @@
+image: python:3.7
+
+before_script:
+  - pip install .
+  - python3 --version
+
+stages:
+    - Static Analysis
+    - Code Test
+
+flake8:
+    stage: Static Analysis
+    script:
+        - pip install flake8
+        - flake8 fcat/
+
+pytests:
+    stage: Code Test
+    script:
+        - pip install pytest
+        - pytest tests/
