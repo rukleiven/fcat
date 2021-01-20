@@ -8,7 +8,7 @@ class State:
         self.state = init
         if init is None:
             self.state = np.zeros(12)
-        
+
         if len(self.state) != 12:
             raise ValueError("Length of state vector must be 12")
 

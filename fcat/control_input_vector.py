@@ -8,7 +8,7 @@ class Control_input:
         self.control_input = init
         if init is None:
             self.control_input = np.zeros(4)
-        
+
         if len(self.control_input) != 4:
             raise ValueError("Length of control_input vector must be 4")
 
@@ -43,4 +43,3 @@ class Control_input:
     @delta_t.setter
     def delta_t(self, value: float):
         self.control_input[3] = value
-
