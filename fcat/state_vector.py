@@ -1,11 +1,16 @@
 import numpy as np
 
-__all__ = ('State',)
+__all__ = ('State')
 
 
 class State:
-    def __init__(self):
-        self.state = np.zeros(12)
+    def __init__(self, init: np.ndarray = None):
+        self.state = init
+        if init is None:
+            self.state = np.zeros(12)
+        
+        if len(self.state) != 12:
+            raise ValueError("Length of state vector must be 12")
 
     @property
     def x(self) -> float:
