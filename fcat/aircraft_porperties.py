@@ -30,11 +30,10 @@ class AircraftProperties(ABC):
         """
 
     @abstractmethod
-    def lift_coeff(self, state: State, control_input: Control_input, alpha: float) -> float:
+    def lift_coeff(self, state: State, wind: np.ndarray) -> float:
         """
         :param state: State vector of the air-craft
-        :param control_input: Control input vector of the aircraft
-        :param alpha: Angle of attack
+        :param wind: wind vector
 
         The drag force is given by
 
@@ -44,7 +43,7 @@ class AircraftProperties(ABC):
         """
 
     @abstractmethod    
-    def side_force_coeff(self, state: State, control_input: Control_input, beta: float) -> float:
+    def side_force_coeff(self, state: State, wind: np.ndarray) -> float:
         """
         :param state: State vector of the air-craft
         :param control_input: Control input vector of the aircraft
@@ -61,7 +60,7 @@ class AircraftProperties(ABC):
 
 
     @abstractmethod
-    def roll_moment_coeff(self, state: State, control_input: Control_input, beta: float) -> float:
+    def roll_moment_coeff(self, state: State, wind: np.ndarray) -> float:
          """
         :param state: State vector of the air-craft
         :param control_input: Control input vector of the aircraft
@@ -77,7 +76,7 @@ class AircraftProperties(ABC):
 
 
     @abstractmethod
-    def pitch_moment_coeff(self, state: State, control_input: Control_input, alpha: float) -> float:
+    def pitch_moment_coeff(self, state: State, wind: np.ndarray) -> float:
         """
         :param state: State vector of the air-craft
         :param control_input: Control input vector of the aircraft
@@ -92,7 +91,7 @@ class AircraftProperties(ABC):
 
 
     @abstractmethod
-    def yaw_moement_coeff(self, state: State, control_input: Control_input, beta: float) -> float:
+    def yaw_moment_coeff(self, state: State, wind: np.ndarray) -> float:
         """
         :param state: State vector of the air-craft
         :param control_input: Control input vector of the aircraft
@@ -123,42 +122,21 @@ class AircraftProperties(ABC):
         
 
 class SkywalkerX8Constants(NamedTuple):
-    wing_span: float
-    mean_chord: float
-    wing_area: float
-    motor_constant: float
-    motor_efficiency_fact: float
-    mass: float
-    I_xx: float
-    I_xy: float
-    I_xz: float
-    I_yx: float
-    I_yy: float
-    I_yz: float
-    I_yz: float
-    I_yz: float
-    I_zx: float
-    I_zy: float
-    I_zz: float
+    wing_span: float = 2.1
+    mean_chord: float = 0.3571
+    wing_area: float = 0.75
+    motor_constant: float = 40
+    motor_efficiency_fact: float = 1
+    mass: float = 3.3650
+    I_xx: float = 0.340
+    I_xy: float = 0.0
+    I_xz: float = -0.031
+    I_yy: float = 0.165
+    I_yz: float = 0.0
+    I_zx: float = -0.031
+    I_zz: float = 0.400
 
-def default_skywalkerX8_constants() -> SkywalkerX8Constants:
-    constants = SkywalkerX8Constants()
-    constants.wing_span = 2.1
-    constants.mean_chord = 0.3571
-    constants.wing_area = 0.75
-    constants.motor_constant = 40
-    constants.motor_efficiency_fact = 1
-    constants.mass = 3.3650
-    constants.I_xx = 0.340
-    constants.I_xy = 0.0
-    constants.I_xz = -0.031
-    constants.I_yx = 0.0
-    constants.I_yy = 0.165
-    constants.I_yz = 0.0
-    constants.I_zx = -0.031
-    constants.I_zy = 0.0
-    constants.I_zz = 0.400
-    return constants
+
 
 
 class IcedSkywalkerX8Properties(AircraftProperties):
@@ -166,18 +144,33 @@ class IcedSkywalkerX8Properties(AircraftProperties):
     Properties for the SkywalkerX8 airplane. Parmaeter value are found
     in ...
     """
-    def __init__(self, wind: np.ndarray, icing: float = 0.0):
-        super().__init__(wind)
+    def __init__(self, control_input: Control_input, icing: float = 0.0):
+        super().__init__(control_input)
         self.icing = icing
-        self.constants = default_skywalkerX8_constants()
+        self.constants = SkywalkerX8Constants()
 
     def mass(self):
         return self.constants.mass
     
     def inertia_matrix(self):
         return np.array([[self.constants.I_xx, self.constants.I_xy, self.constants.I_xz],
-                         [self.constants.I_yx, self.constants.I_yy, self.constants.I_yz],
-                         [self.constants.I_zx, self.constants.I_zy, self.constants.I_zz]])
+                         [self.constants.I_xy, self.constants.I_yy, self.constants.I_yz],
+                         [self.constants.I_xz, self.constants.I_yz, self.constants.I_zz]])
     
-    def drag_coeff(self, state: State) -> float:
+    def drag_coeff(self, state: State, wind: np.ndarray) -> float:
+        return 1.0
+    
+    def lift_coeff(self, state: State, wind: np.ndarray) -> float:
+        return 1.0
+    
+    def side_force_coeff(self, state: State, wind: np.ndarray) -> float:
+        return 1.0
+
+    def roll_moment_coeff(self, state: State, wind: np.ndarray) -> float:
+        return 1.0
+
+    def pitch_moment_coeff(self, state: State, wind: np.ndarray) -> float:
+        return 1.0
+    
+    def yaw_moment_coeff(self, state: State, wind: np.ndarray) -> float:
         return 1.0
