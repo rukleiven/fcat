@@ -1,6 +1,6 @@
 import numpy as np
 
-__all__ = ('Control_input')
+__all__ = ('Control_input',)
 
 
 class Control_input:

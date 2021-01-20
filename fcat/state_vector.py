@@ -1,6 +1,6 @@
 import numpy as np
 
-__all__ = ('State')
+__all__ = ('State',)
 
 
 class State:

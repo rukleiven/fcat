@@ -5,20 +5,21 @@ from fcat import Control_input
 
 __all__ = ('AircraftProperties', 'IcedSkywalkerX8Properties')
 
+
 class AircraftProperties(ABC):
     """
     Class collecting all force functions required to describe the dynamics of an aircraft.
     """
-    def __init__(self, wind: np.ndarray):
-        self.wind = wind
+    def __init__(self, control_input: Control_input):
+        self.control_input = control_input
 
     @abstractmethod
-    def drag_coeff(self, state: State, control_input: Control_input, alpha: float) -> float:
+    def drag_coeff(self, state: State, alpha: float) -> float:
         """
         :param state: State vector of the air-craft
         :param control_input: Control input vector of the aircraft
         :param alpha: Angle of attack
-        
+
 
         The drag force is given by
 
@@ -26,7 +27,6 @@ class AircraftProperties(ABC):
 
         where rho is the air density and C_drag is the drag coefficient returned by this function
         """
-
 
     @abstractmethod
     def lift_coeff(self, state: State, control_input: Control_input, alpha: float) -> float:
@@ -42,7 +42,6 @@ class AircraftProperties(ABC):
         where rho is the air density and C_lift is the lift coefficient returned by this function
         """
 
-
     @abstractmethod    
     def side_force_coeff(self, state: State, control_input: Control_input, beta: float) -> float:
         """
@@ -55,7 +54,8 @@ class AircraftProperties(ABC):
 
         F = 0.5*rho*C_side_force*v^2
 
-        where rho is the air density and C_side_force is the side force coefficient returned by this function
+        where rho is the air density and C_side_force is the side force coefficient 
+        returned by this function
         """
 
 
@@ -70,7 +70,8 @@ class AircraftProperties(ABC):
 
         F = 0.5*rho*C_l*v^2
 
-        where rho is the air density and C_l is the rolling moment coefficient returned by this function
+        where rho is the air density and C_l is the rolling moment coefficient 
+        returned by this function
         """
 
 
