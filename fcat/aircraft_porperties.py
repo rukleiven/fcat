@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import NamedTuple
 import numpy as np
 from fcat import State
 from fcat import Control_input
@@ -121,35 +122,62 @@ class AircraftProperties(ABC):
         """
         
 
+class SkywalkerX8Constants(NamedTuple):
+    wing_span: float
+    mean_chord: float
+    wing_area: float
+    motor_constant: float
+    motor_efficiency_fact: float
+    mass: float
+    I_xx: float
+    I_xy: float
+    I_xz: float
+    I_yx: float
+    I_yy: float
+    I_yz: float
+    I_yz: float
+    I_yz: float
+    I_zx: float
+    I_zy: float
+    I_zz: float
+
+def default_skywalkerX8_constants() -> SkywalkerX8Constants:
+    constants = SkywalkerX8Constants()
+    constants.wing_span = 2.1
+    constants.mean_chord = 0.3571
+    constants.wing_area = 0.75
+    constants.motor_constant = 40
+    constants.motor_efficiency_fact = 1
+    constants.mass = 3.3650
+    constants.I_xx = 0.340
+    constants.I_xy = 0.0
+    constants.I_xz = -0.031
+    constants.I_yx = 0.0
+    constants.I_yy = 0.165
+    constants.I_yz = 0.0
+    constants.I_zx = -0.031
+    constants.I_zy = 0.0
+    constants.I_zz = 0.400
+    return constants
+
 
 class IcedSkywalkerX8Properties(AircraftProperties):
     """
     Properties for the SkywalkerX8 airplane. Parmaeter value are found
     in ...
     """
-    def __init__(self, wind: np.ndarray, icing: float = 0.0, ):
+    def __init__(self, wind: np.ndarray, icing: float = 0.0):
         super().__init__(wind)
         self.icing = icing
-        self.wing_span = 2.1
-        self.mean_chord = 0.3571
-        self.wing_area = 0.75
-        self.motor_constant = 40
-        self.motor_efficiency_fact = 1
-        self.I_xx = 0.340
-        self.I_xy = 0.0
-        self.I_xz = -0.031
-        self.I_yx = 0.0
-        self.I_yy = 0.165
-        self.I_yz = 0.0
-        self.I_zx = -0.031
-        self.I_zy = 0.0
-        self.I_zz =0.400
+        self.constants = default_skywalkerX8_constants()
 
     def mass(self):
-        return 3.3650
+        return self.constants.mass
     
     def inertia_matrix(self):
-        return np.array([[self.I_xx, self.I_xy, self.I_xz], [self.I_yx, self.I_yy, self.I_yz], [self.I_zx, self.I_zy, self.I_zz]])
+        return np.array([[self.constants.I_xx, self.constants.I_xy, self.constants.I_xz],
+                         [self.constants.I_yx, self.constants.I_yy, self.constants.I_yz],
+                         [self.constants.I_zx, self.constants.I_zy, self.constants.I_zz]])
     
     def drag_coeff(self, state: State) -> float:
         return 1.0
