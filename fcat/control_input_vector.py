@@ -7,6 +7,12 @@ class ControlInput:
     """
     Vector with control signals used to control the aircraft actuators. The control signals
     are throttle and angular deflections of elevator, aileron and rudder.
+
+    :param init: Initial value of the control vector. If not given, all elements will be
+        initialized to zero. The input array should be of length 4 and contain the elements
+        [elevator deflection, aileron deflection, rudder deflection, throttle]
+        The deflection angles are given in radians and throttle is an indicator variable
+        (0 <= throttle <= 1) where 0 corresponds to no thrust and 1 corresponds maximum thrust.
     """
     def __init__(self, init: np.ndarray = None):
         self.control_input = init
