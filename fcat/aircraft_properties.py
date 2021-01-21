@@ -2,17 +2,22 @@ from abc import ABC, abstractmethod
 from typing import NamedTuple
 import numpy as np
 from fcat import State
-from fcat import Control_input
+from fcat import ControlInput
 
 __all__ = ('AircraftProperties', 'IcedSkywalkerX8Properties')
 
 
 class AircraftProperties(ABC):
     """
-    Class collecting all force functions required to describe the dynamics of an aircraft.
+    Class collecting fluid mechanical coefficients needed to describe dynamics of an aircraft.
+    AircraftProperties represent an airplane where the control inputs are fixed.
+    Thus, concrete implementations of this class, should return the fluid mechanical coefficients
+    when the control variables are given. See py:class`IcedSkywalkerX8Properties` for an example.
+
+    :param control_input: Control variables
     """
 
-    def __init__(self, control_input: Control_input):
+    def __init__(self, control_input: ControlInput):
         self.control_input = control_input
 
     @abstractmethod
@@ -143,7 +148,7 @@ class IcedSkywalkerX8Properties(AircraftProperties):
     in ...
     """
 
-    def __init__(self, control_input: Control_input, icing: float = 0.0):
+    def __init__(self, control_input: ControlInput, icing: float = 0.0):
         super().__init__(control_input)
         self.icing = icing
         self.constants = SkywalkerX8Constants()
