@@ -1,9 +1,9 @@
 import numpy as np
 
-__all__ = ('Control_input',)
+__all__ = ('ControlInput',)
 
 
-class Control_input:
+class ControlInput:
     def __init__(self, init: np.ndarray = None):
         self.control_input = init
         if init is None:
