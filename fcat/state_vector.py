@@ -127,3 +127,7 @@ class State:
     @yaw_dot.setter
     def yaw_dot(self, value: float):
         self.state[StateVecIndices.YAW_DOT] = value
+
+    @property
+    def velocity(self) -> float:
+        return np.sqrt(self.vx**2 + self.vy**2 + self.vz**2)
