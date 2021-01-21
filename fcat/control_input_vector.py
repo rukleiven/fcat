@@ -4,6 +4,10 @@ __all__ = ('ControlInput',)
 
 
 class ControlInput:
+    """
+    Vector with control signals used to control the aircraft actuators. The control signals
+    are throttle and angular deflections of elevator, aileron and rudder.
+    """
     def __init__(self, init: np.ndarray = None):
         self.control_input = init
         if init is None:

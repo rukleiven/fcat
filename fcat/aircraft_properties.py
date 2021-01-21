@@ -21,11 +21,10 @@ class AircraftProperties(ABC):
         self.control_input = control_input
 
     @abstractmethod
-    def drag_coeff(self, state: State, alpha: float) -> float:
+    def drag_coeff(self, state: State, wind: np.ndarray) -> float:
         """
         :param state: State vector of the air-craft
-        :param control_input: Control input vector of the aircraft
-        :param alpha: Angle of attack
+        :param wind: Wind speed vector
 
 
         The drag force is given by
@@ -39,7 +38,7 @@ class AircraftProperties(ABC):
     def lift_coeff(self, state: State, wind: np.ndarray) -> float:
         """
         :param state: State vector of the air-craft
-        :param wind: wind vector
+        :param wind: Wind speed vector
 
         The drag force is given by
 
@@ -52,8 +51,7 @@ class AircraftProperties(ABC):
     def side_force_coeff(self, state: State, wind: np.ndarray) -> float:
         """
         :param state: State vector of the air-craft
-        :param control_input: Control input vector of the aircraft
-        :param beta: Angle of sideslip
+        :param wind: Wind speed vector
 
 
         The drag force is given by
@@ -68,8 +66,7 @@ class AircraftProperties(ABC):
     def roll_moment_coeff(self, state: State, wind: np.ndarray) -> float:
         """
        :param state: State vector of the air-craft
-       :param control_input: Control input vector of the aircraft
-       :param beta: Angle of sideslip
+       :param wind: Wind speed vector
 
        The drag force is given by
 
@@ -83,8 +80,7 @@ class AircraftProperties(ABC):
     def pitch_moment_coeff(self, state: State, wind: np.ndarray) -> float:
         """
         :param state: State vector of the air-craft
-        :param control_input: Control input vector of the aircraft
-        :param alpha: Angle of attack
+        :param wind: Wind speed vector
 
         The drag force is given by
 
@@ -98,8 +94,7 @@ class AircraftProperties(ABC):
     def yaw_moment_coeff(self, state: State, wind: np.ndarray) -> float:
         """
         :param state: State vector of the air-craft
-        :param control_input: Control input vector of the aircraft
-        :param beta: Angle of sideslip
+        :param wind: Wind speed vector
 
         The drag force is given by
 
