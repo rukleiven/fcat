@@ -13,33 +13,33 @@ class ControlInput:
             raise ValueError("Length of control_input vector must be 4")
 
     @property
-    def delta_e(self) -> float:
+    def elevator_deflection(self) -> float:
         return self.control_input[0]
 
-    @delta_e.setter
-    def delta_e(self, value: float):
+    @elevator_deflection.setter
+    def elevator_deflection(self, value: float):
         self.control_input[0] = value
 
     @property
-    def delta_a(self) -> float:
+    def aileron_deflection(self) -> float:
         return self.control_input[1]
 
-    @delta_a.setter
-    def delta_a(self, value: float):
+    @aileron_deflection.setter
+    def aileron_deflection(self, value: float):
         self.control_input[1] = value
 
     @property
-    def delta_r(self) -> float:
+    def rudder_deflection(self) -> float:
         return self.control_input[2]
 
-    @delta_r.setter
-    def delta_r(self, value: float):
+    @rudder_deflection.setter
+    def rudder_deflection(self, value: float):
         self.control_input[2] = value
 
     @property
-    def delta_t(self) -> float:
+    def throttle(self) -> float:
         return self.control_input[3]
 
-    @delta_t.setter
-    def delta_t(self, value: float):
+    @throttle.setter
+    def throttle(self, value: float):
         self.control_input[3] = value

@@ -3,30 +3,30 @@ import numpy as np
 from fcat import ControlInput
 
 
-def test_delta_e():
+def test_elevator_deflection():
     control_input = ControlInput()
-    delta_e = 0.2
-    control_input.delta_e = delta_e
-    assert control_input.delta_e == pytest.approx(delta_e)
-    assert np.allclose(control_input.control_input, [delta_e, 0.0, 0.0, 0.0])
+    elevator_deflection = 0.2
+    control_input.elevator_deflection = elevator_deflection
+    assert control_input.elevator_deflection == pytest.approx(elevator_deflection)
+    assert np.allclose(control_input.control_input, [elevator_deflection, 0.0, 0.0, 0.0])
 
-def test_delta_a():
+def test_aileron_deflection():
     control_input = ControlInput()
-    delta_a = 0.2
-    control_input.delta_a = delta_a
-    assert control_input.delta_a == pytest.approx(delta_a)
-    assert np.allclose(control_input.control_input, [0.0, delta_a, 0.0, 0.0])
+    aileron_deflection = 0.2
+    control_input.aileron_deflection = aileron_deflection
+    assert control_input.aileron_deflection == pytest.approx(aileron_deflection)
+    assert np.allclose(control_input.control_input, [0.0, aileron_deflection, 0.0, 0.0])
 
-def test_delta_r():
+def test_rudder_deflection():
     control_input = ControlInput()
-    delta_r = 0.2
-    control_input.delta_r = delta_r
-    assert control_input.delta_r == pytest.approx(delta_r)
-    assert np.allclose(control_input.control_input, [0.0, 0.0, delta_r, 0.0])
+    rudder_deflection = 0.2
+    control_input.rudder_deflection = rudder_deflection
+    assert control_input.rudder_deflection == pytest.approx(rudder_deflection)
+    assert np.allclose(control_input.control_input, [0.0, 0.0, rudder_deflection, 0.0])
 
-def test_delta_t():
+def test_throttle():
     control_input = ControlInput()
-    delta_t = 0.2
-    control_input.delta_t = delta_t
-    assert control_input.delta_t == pytest.approx(delta_t)
-    assert np.allclose(control_input.control_input, [0.0, 0.0, 0.0, delta_t])
+    throttle = 0.2
+    control_input.throttle = throttle
+    assert control_input.throttle == pytest.approx(throttle)
+    assert np.allclose(control_input.control_input, [0.0, 0.0, 0.0, throttle])
