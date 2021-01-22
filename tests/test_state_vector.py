@@ -86,3 +86,17 @@ def test_yaw():
     state.yaw_dot = yaw_dot
     assert state.yaw_dot == pytest.approx(yaw_dot)
     assert np.allclose(state.state, [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, yaw_dot])
+
+
+@pytest.mark.parametrize('vx, vy, vz, want', [
+    (1.0, 0.0, 0.0, 1.0),
+    (1.0, -1.0, 0.0, np.sqrt(2.0)),
+    (1.0, -1.0, 1.0, np.sqrt(3.0)),
+    (0.0, 0.0, 0.0, 0.0),
+])
+def test_velocity(vx, vy, vz, want):
+    state = State()
+    state.vx = vx
+    state.vy = vy
+    state.vz = vz
+    assert state.velocity == pytest.approx(want)
