@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 from fcat.multidim_poly import polynomial_term_iterator
-from fcat import MultiDimPolynomial
+from fcat import MultiDimPolynomial, optimize_poly_order
 
 
 @pytest.mark.parametrize('order, variables, want', [
@@ -50,4 +50,44 @@ def test_fit_given_order_consistency(order, data, want):
     pred = [fitter.evaluate(X[i, :]) for i in range(X.shape[0])]
     diff = pred - y
     assert np.sqrt(np.mean(diff**2)) == pytest.approx(0.0)
+    assert fitter.rmse == pytest.approx(0.0)
     assert np.allclose(fitter.coeff, want)
+
+def test_optimize_model():
+    np.random.seed(0)
+    data = np.random.rand(10, 3)
+    model = optimize_poly_order(data, [4, 4])
+
+    # The number of coefficients must be smaller than the number of data points
+    assert model.num_features < data.shape[0]
+
+def test_optimize_model_known_results():
+    # y = 0.1 - 0.2*x1 + 0.2*x2     
+    data = np.array([[0.0, 0.0, 0.1],
+                     [1.0, 1.0, 0.1],
+                     [1.0, -1.0, -0.3],
+                     [0.0, 1.0, 0.3],
+                     [0.0, 2.0, 0.5],
+                     [1.0, 2.0, 0.3],
+                     [2.0, 2.0, 0.1],
+                     [-2.0, 2.0, 0.9]])
+
+    want = [0.1, 0.2, -0.2, 0.0]
+
+    model = optimize_poly_order(data, [4, 4])
+    assert all(x == y for x, y in zip(model.order, [1, 1]))
+    assert np.allclose(want, model.coeff)
+
+
+def test_fit_model():
+    np.random.seed(0)
+    data = np.random.rand(10, 3)
+    model = MultiDimPolynomial(data, [2, 2])
+    fig = model.show()
+    ax = fig.axes[0]
+    assert len(ax.lines) == 2
+    assert len(ax.lines[0].get_xdata()) == 2
+    assert len(ax.lines[0].get_ydata()) == 2
+    assert len(ax.lines[1].get_xdata()) == data.shape[0]
+    assert len(ax.lines[1].get_ydata()) == data.shape[0]
+

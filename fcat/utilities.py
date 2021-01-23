@@ -19,4 +19,4 @@ def aic(num_features: int, rmse: float) -> float:
     :param rmse: Root mean square error
     :param num_features: Number of fitting parameters
     """
-    return 2.0*num_features - 2.0*np.log(rmse)
+    return 2.0*num_features + 2.0*np.log(rmse)
