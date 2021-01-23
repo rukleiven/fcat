@@ -8,5 +8,5 @@ setup(
     url="https://github.com/rukleiven/fcat",
     packages=find_packages(),
     keywords=["Flight", "Control Systems", "Adaptive Control"],
-    install_requires=['numpy']
+    install_requires=['numpy', 'matplotlib']
 )
