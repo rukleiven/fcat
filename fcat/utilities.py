@@ -95,3 +95,124 @@ def calc_angle_of_sideslip(state: State, wind: np.ndarray):
 
 def deg2rad(array: Union[np.ndarray, float]) -> Union[np.ndarray, float]:
     return array*np.pi/180.0
+
+
+def wind2body_rot_matrix(state: State, wind: np.ndarray) -> np.ndarray:
+    """
+    Returns the rotation matrix that rotates a vector from the wind frame to the body frame
+
+    :param state: State vector of the aircraft
+    :param wind: Wind-vector
+    """
+    alpha = calc_angle_of_attack(state, wind)
+    beta = calc_angle_of_sideslip(state, wind)
+    return np.array([[np.cos(beta)*np.cos(alpha), np.sin(beta)*np.cos(alpha), -np.sin(alpha)],
+                     [-np.sin(beta), np.cos(beta), 0],
+                     [np.cos(beta)*np.sin(alpha), np.sin(alpha)*np.sin(beta), np.cos(alpha)]])
+
+
+def body2wind_rot_matrix(state: State, wind: np.ndarray) -> np.ndarray:
+    """
+    Returns the rotation matrix that rotates a vector from the wind frame to the body frame
+
+    :param state: State vector of the aircraft
+    :param wind: Wind-vector
+    """
+    return wind2body_rot_matrix(state, wind).T.copy()
+
+
+def body2wind(vec: np.ndarray, state: State, wind: np.ndarray) -> np.ndarray:
+    """
+    Rotate the vector vec from body frame to wind frame
+
+    :param vec: Vector of length 3 to be rotated
+    :param state: Current state vector of the air plane
+    :param wind: Wind vector
+    """
+    return body2wind_rot_matrix(state, wind).dot(vec)
+
+
+def wind2body(vec: np.ndarray, state: State, wind: np.ndarray) -> np.ndarray:
+    """
+    Rotate the vector vec from wind frame to body frame
+
+    :param vec: Vector of length 3 to be rotated
+    :param state: Current state vector of the air plane
+    :param wind: Wind vector
+    """
+    return wind2body_rot_matrix(state, wind).dot(vec)
+
+
+def inertial2body_rot_matrix(state: State) -> np.ndarray:
+    """
+    Rotate the vector vec from inertial frame to body frame
+
+    :param vec: Vector of length 3 to be rotated
+    :param state: Current state vector of the air plane
+    :param wind: Wind vector
+    """
+    phi = state.roll
+    theta = state.pitch
+    psi = state.yaw
+
+    s_phi = np.sin(phi)
+    c_phi = np.cos(phi)
+    s_theta = np.sin(theta)
+    c_theta = np.cos(theta)
+    s_psi = np.sin(psi)
+    c_psi = np.cos(psi)
+
+    return np.array([[c_theta*c_psi, c_theta*s_psi, -s_theta],
+                     [s_phi*s_theta*c_psi-c_phi*s_psi, s_phi*s_theta*s_psi+c_phi*c_psi,
+                      s_phi*c_theta],
+                     [c_phi*s_theta*c_psi+s_phi*s_psi, c_phi*s_theta*s_psi-s_phi*c_psi,
+                      c_phi*c_theta]])
+
+
+def inertial2body(vec: np.ndarray, state: State) -> np.ndarray:
+    """
+    Rotate the vector vec from inertial frame to body frame
+
+    :param vec: Vector of length 3 to be rotated
+    :param state: Current state vector of the air plane
+    :param wind: Wind vector
+    """
+    return inertial2body_rot_matrix(state).dot(vec)
+
+
+def body2inertial(vec: np.ndarray, state: State) -> np.ndarray:
+    """
+    Rotate the vector vec from inertial frame to body frame
+
+    :param vec: Vector of length 3 to be rotated
+    :param state: Current state vector of the air plane
+    :param wind: Wind vector
+    """
+    return inertial2body_rot_matrix(state).T.dot(vec)
+
+
+def euler_rot_matrix(state: State) -> np.ndarray:
+    """
+    Rotate the vector vec from body frame to euler angles
+
+    :param vec: Vector of length 3 to be rotated
+    :param state: Current state vector of the air plane
+    :param wind: Wind vector
+    """
+    phi = state.roll
+    theta = state.pitch
+
+    return np.array([[1, np.sin(phi)*np.tan(theta), np.cos(phi)*np.tan(theta)],
+                     [0, np.cos(phi), -np.sin(phi)],
+                     [0, np.sin(phi)/np.cos(theta), np.cos(phi)/np.cos(theta)]])
+
+
+def body2euler(vec: np.ndarray, state: State) -> np.ndarray:
+    """
+    Rotate the vector vec from inertial frame to body frame
+
+    :param vec: Vector of length 3 to be rotated
+    :param state: Current state vector of the air plane
+    :param wind: Wind vector
+    """
+    return euler_rot_matrix(state).dot(vec)

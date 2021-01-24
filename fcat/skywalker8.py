@@ -4,7 +4,7 @@ import numpy as np
 # (C_D_a_data, C_D_q_data, C_D_delta_e_data, C_L_a_data, C_L_q_data, C_L_delta_e_data)
 from fcat.skywalkerX8_data import *
 from fcat.utilities import calc_airspeed, calc_angle_of_attack, calc_angle_of_sideslip,\
-     calc_rotational_airspeed
+    calc_rotational_airspeed
 
 from scipy.interpolate import interp1d
 
@@ -15,15 +15,16 @@ class SkywalkerX8Constants(NamedTuple):
     wing_span: float = 2.1
     mean_chord: float = 0.3571
     wing_area: float = 0.75
+    propeller_area: float = 0.1018
     motor_constant: float = 40
     motor_efficiency_fact: float = 1
     mass: float = 3.3650
-    I_xx: float = 0.340
+    I_xx: float = 0.335
     I_xy: float = 0.0
     I_xz: float = -0.031
-    I_yy: float = 0.165
+    I_yy: float = 0.140
     I_yz: float = 0.0
-    I_zx: float = -0.031
+    I_zx: float = -0.029
     I_zz: float = 0.400
 
 
@@ -150,6 +151,24 @@ class IcedSkywalkerX8Properties(AircraftProperties):
             (self.C_n_p(beta, self.icing) * b / (2*airspeed)) * roll_dot + \
             (self.C_n_r(beta, self.icing) * b / (2*airspeed)) * \
             yaw_dot + self.C_n_delta_a(beta, self.icing)*delta_a
+
+    def wing_span(self) -> float:
+        return self.constants.wing_span
+
+    def mean_chord(self) -> float:
+        return self.constants.mean_chord
+
+    def wing_area(self) -> float:
+        return self.constants.wing_area
+
+    def propeller_area(self) -> float:
+        return self.constants.propeller_area
+
+    def motor_constant(self) -> float:
+        return self.constants.motor_constant
+
+    def motor_efficiency_fact(self) -> float:
+        return self.constants.motor_efficiency_fact
 
 
 def iced_clean_split(data: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
