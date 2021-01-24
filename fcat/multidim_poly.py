@@ -98,6 +98,10 @@ class MultiDimPolynomial:
     def num_features(self) -> int:
         return len(self.coeff)
 
+    @property
+    def aicc(self) -> float:
+        return aicc(self.num_data, self.num_features, self.rmse)
+
     def show(self) -> Figure:
         fig = plt.figure()
         ax = fig.add_subplot(1, 1, 1)
@@ -122,6 +126,7 @@ class MultiDimPolynomial:
         print("================================================")
         print(f"Order:            {self.order}")
         print(f"RMSE:             {self.rmse:.2e}")
+        print(f"AICC:             {self.aicc:.2e}")
         print(f"Num. coeff:       {self.num_features}")
         print(f"Num. data points: {self.num_data}")
         print("================================================")
