@@ -1,10 +1,8 @@
 from abc import ABC, abstractmethod
-from typing import NamedTuple
 import numpy as np
-from fcat import State
-from fcat import ControlInput
+from fcat import State, ControlInput
 
-__all__ = ('AircraftProperties', 'IcedSkywalkerX8Properties')
+__all__ = ('AircraftProperties',)
 
 
 class AircraftProperties(ABC):
@@ -119,57 +117,3 @@ class AircraftProperties(ABC):
           I_zx  I_zy  I_zz
         ]
         """
-
-
-class SkywalkerX8Constants(NamedTuple):
-    wing_span: float = 2.1
-    mean_chord: float = 0.3571
-    wing_area: float = 0.75
-    motor_constant: float = 40
-    motor_efficiency_fact: float = 1
-    mass: float = 3.3650
-    I_xx: float = 0.340
-    I_xy: float = 0.0
-    I_xz: float = -0.031
-    I_yy: float = 0.165
-    I_yz: float = 0.0
-    I_zx: float = -0.031
-    I_zz: float = 0.400
-
-
-class IcedSkywalkerX8Properties(AircraftProperties):
-    """
-    Properties for the SkywalkerX8 airplane. Parmaeter value are found
-    in ...
-    """
-
-    def __init__(self, control_input: ControlInput, icing: float = 0.0):
-        super().__init__(control_input)
-        self.icing = icing
-        self.constants = SkywalkerX8Constants()
-
-    def mass(self):
-        return self.constants.mass
-
-    def inertia_matrix(self):
-        return np.array([[self.constants.I_xx, self.constants.I_xy, self.constants.I_xz],
-                         [self.constants.I_xy, self.constants.I_yy, self.constants.I_yz],
-                         [self.constants.I_xz, self.constants.I_yz, self.constants.I_zz]])
-
-    def drag_coeff(self, state: State, wind: np.ndarray) -> float:
-        return 1.0
-
-    def lift_coeff(self, state: State, wind: np.ndarray) -> float:
-        return 1.0
-
-    def side_force_coeff(self, state: State, wind: np.ndarray) -> float:
-        return 1.0
-
-    def roll_moment_coeff(self, state: State, wind: np.ndarray) -> float:
-        return 1.0
-
-    def pitch_moment_coeff(self, state: State, wind: np.ndarray) -> float:
-        return 1.0
-
-    def yaw_moment_coeff(self, state: State, wind: np.ndarray) -> float:
-        return 1.0

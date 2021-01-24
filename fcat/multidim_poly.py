@@ -4,8 +4,6 @@ from typing import Sequence
 from itertools import product
 from fcat.utilities import aicc
 from copy import deepcopy
-from matplotlib.figure import Figure
-from matplotlib import pyplot as plt
 
 __all__ = ('MultiDimPolynomial', 'optimize_poly_order')
 
@@ -102,7 +100,8 @@ class MultiDimPolynomial:
     def aicc(self) -> float:
         return aicc(self.num_data, self.num_features, self.rmse)
 
-    def show(self) -> Figure:
+    def show(self):
+        from matplotlib import pyplot as plt
         fig = plt.figure()
         ax = fig.add_subplot(1, 1, 1)
         predictions = [self.evaluate(self.data[i, :-1]) for i in range(self.data.shape[0])]
