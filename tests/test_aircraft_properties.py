@@ -44,7 +44,7 @@ def lift_coeff_test_cases():
     state2 = State()
     state2.vx = 20.0
     state2.vz = 0.0
-    state2.pitch_dot = 5*np.pi/180
+    state2.ang_rate_y = 5*np.pi/180
     wind1 = np.zeros(6)
     wind2 = np.zeros(6)
     wind3 = np.zeros(6)
@@ -53,7 +53,7 @@ def lift_coeff_test_cases():
     wind3[0] = 1.0
     wind3[2] = -19.0*np.tan(8*np.pi/180.0)
     wind3[4] = 3*np.pi/180
-    pitch_dot2 = state2.pitch_dot-wind3[4]
+    ang_rate_y2 = state2.ang_rate_y-wind3[4]
     airspeed2 = np.sqrt(np.sum(calc_airspeed(state2, wind2)**2))
     zero_input = ControlInput()
     elevator_input = ControlInput()
@@ -68,8 +68,8 @@ def lift_coeff_test_cases():
             (state1, wind1, 1.0, elevator_input, 0.018798581619545 +
              0.278*elevator_input.elevator_deflection),
             (state2, wind3, 0.0, elevator_input, 0.609296679062686 + 4.60 * c /
-             (2*airspeed2)*pitch_dot2 + 0.278*elevator_input.elevator_deflection),
-            (state2, wind3, 1.0, elevator_input, 0.454153721254944 - 3.51 * c/(2*airspeed2)*pitch_dot2 + 0.278*elevator_input.elevator_deflection)]
+             (2*airspeed2)*ang_rate_y2 + 0.278*elevator_input.elevator_deflection),
+            (state2, wind3, 1.0, elevator_input, 0.454153721254944 - 3.51 * c/(2*airspeed2)*ang_rate_y2 + 0.278*elevator_input.elevator_deflection)]
 
 
 @pytest.mark.parametrize('state, wind, icing, control_input, expect', lift_coeff_test_cases())
@@ -89,8 +89,8 @@ def side_force_coeff_test_cases():
     state2.vx = 28.6362532829
     state2.vy = 1.0
     state2.vz = 0.0
-    state2.roll_dot = 5*np.pi/180
-    state2.yaw_dot = 5*np.pi/180
+    state2.ang_rate_x = 5*np.pi/180
+    state2.ang_rate_z = 5*np.pi/180
     wind = np.zeros(6)
     airspeed = np.sqrt(np.sum(calc_airspeed(state2, wind)**2))
     zero_input = ControlInput()
@@ -99,9 +99,9 @@ def side_force_coeff_test_cases():
 
     return [(state1, wind, 0.0, zero_input, 2.99968641720902E-08),
             (state1, wind, 1.0, zero_input, -7.94977329537982E-06),
-            (state2, wind, 0.0, aileron_input, -0.008604744865183 + -0.085 * b/(2*airspeed)*state2.roll_dot +
-             0.005 * b/(2*airspeed)*state2.yaw_dot + 0.0433*aileron_input.aileron_deflection),
-            (state2, wind, 1.0, aileron_input, -0.007089388672593 + -0.133 * b/(2*airspeed)*state2.roll_dot + 0.002 * b/(2*airspeed)*state2.yaw_dot + 0.0433*aileron_input.aileron_deflection)]
+            (state2, wind, 0.0, aileron_input, -0.008604744865183 + -0.085 * b/(2*airspeed)*state2.ang_rate_x +
+             0.005 * b/(2*airspeed)*state2.ang_rate_z + 0.0433*aileron_input.aileron_deflection),
+            (state2, wind, 1.0, aileron_input, -0.007089388672593 + -0.133 * b/(2*airspeed)*state2.ang_rate_x + 0.002 * b/(2*airspeed)*state2.ang_rate_z + 0.0433*aileron_input.aileron_deflection)]
 
 
 @pytest.mark.parametrize('state, wind, icing, control_input, expect', side_force_coeff_test_cases())
@@ -121,8 +121,8 @@ def roll_moment_coeff_test_cases():
     state2.vx = 28.6362532829
     state2.vy = 1.0
     state2.vz = 0.0
-    state2.roll_dot = 5*np.pi/180
-    state2.yaw_dot = 5*np.pi/180
+    state2.ang_rate_x = 5*np.pi/180
+    state2.ang_rate_z = 5*np.pi/180
     wind = np.zeros(6)
     airspeed = np.sqrt(np.sum(calc_airspeed(state2, wind)**2))
     zero_input = ControlInput()
@@ -132,8 +132,8 @@ def roll_moment_coeff_test_cases():
     return [(state1, wind, 0.0, zero_input, -8.40821757613653E-05),
             (state1, wind, 1.0, zero_input, -7.34515369827804E-05),
             (state2, wind, 0.0, aileron_input, -0.00380800071177 + -0.409 * b/(2*airspeed) *
-             state2.roll_dot + 0.039 * b/(2*airspeed)*state2.yaw_dot + 0.12*aileron_input.aileron_deflection),
-            (state2, wind, 1.0, aileron_input, -0.003067251004494 + -0.407 * b/(2*airspeed)*state2.roll_dot + 0.158 * b/(2*airspeed)*state2.yaw_dot + 0.12*aileron_input.aileron_deflection)]
+             state2.ang_rate_x + 0.039 * b/(2*airspeed)*state2.ang_rate_z + 0.12*aileron_input.aileron_deflection),
+            (state2, wind, 1.0, aileron_input, -0.003067251004494 + -0.407 * b/(2*airspeed)*state2.ang_rate_x + 0.158 * b/(2*airspeed)*state2.ang_rate_z + 0.12*aileron_input.aileron_deflection)]
 
 
 @pytest.mark.parametrize('state, wind, icing, control_input, expect', roll_moment_coeff_test_cases())
@@ -181,8 +181,8 @@ def yaw_moment_coeff_test_cases():
     state2.vx = 28.6362532829
     state2.vy = 1.0
     state2.vz = 0.0
-    state2.roll_dot = 5*np.pi/180
-    state2.yaw_dot = 5*np.pi/180
+    state2.ang_rate_x = 5*np.pi/180
+    state2.ang_rate_z = 5*np.pi/180
     wind = np.zeros(6)
     airspeed = np.sqrt(np.sum(calc_airspeed(state2, wind)**2))
     zero_input = ControlInput()
@@ -191,9 +191,9 @@ def yaw_moment_coeff_test_cases():
 
     return [(state1, wind, 0.0, zero_input, 4.9176697574439E-06),
             (state1, wind, 1.0, zero_input, 1.96093394589053E-05),
-            (state2, wind, 0.0, aileron_input, 0.000825947539055 + 0.027 * b/(2*airspeed)*state2.roll_dot + -
-             0.022 * b/(2*airspeed)*state2.yaw_dot - 0.00339*aileron_input.aileron_deflection),
-            (state2, wind, 1.0, aileron_input, 0.001052911121301 + 0.017 * b/(2*airspeed)*state2.roll_dot + -0.049 * b/(2*airspeed)*state2.yaw_dot - 0.00339*aileron_input.aileron_deflection)]
+            (state2, wind, 0.0, aileron_input, 0.000825947539055 + 0.027 * b/(2*airspeed)*state2.ang_rate_x + -
+             0.022 * b/(2*airspeed)*state2.ang_rate_z - 0.00339*aileron_input.aileron_deflection),
+            (state2, wind, 1.0, aileron_input, 0.001052911121301 + 0.017 * b/(2*airspeed)*state2.ang_rate_x + -0.049 * b/(2*airspeed)*state2.ang_rate_z - 0.00339*aileron_input.aileron_deflection)]
 
 
 @pytest.mark.parametrize('state, wind, icing, control_input, expect', yaw_moment_coeff_test_cases())

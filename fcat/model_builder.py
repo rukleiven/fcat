@@ -4,7 +4,7 @@ from fcat.state_vector import StateVecIndices
 from fcat.utilities import (calc_airspeed, wind2body, inertial2body,
                             body2euler, body2inertial)
 from control.iosys import NonlinearIOSystem
-from fcat.simulation_constants import RHO, GRAVITY_CONST
+from fcat.simulation_constants import AIR_DENSITY, GRAVITY_CONST
 
 __all__ = ('build_nonlin_sys',)
 
@@ -26,7 +26,7 @@ def dynamics_kinetmatics_update(t: float, x: np.ndarray, u: np.ndarray, params: 
     S_prop = prop.propeller_area()
     C_prop = prop.motor_efficiency_fact()
     k_motor = prop.motor_constant()
-    qS = 0.5*RHO*S*V_a**2
+    qS = 0.5*AIR_DENSITY*S*V_a**2
     coeff_wind_frame = np.array([-prop.drag_coeff(state, wind),
                                  prop.side_force_coeff(state, wind),
                                  -prop.lift_coeff(state, wind)])
@@ -36,13 +36,11 @@ def dynamics_kinetmatics_update(t: float, x: np.ndarray, u: np.ndarray, params: 
                                  c*prop.pitch_moment_coeff(state, wind),
                                  b*prop.yaw_moment_coeff(state, wind)])
     moment_vec = qS*moment_coeff_vec
-    omega = np.array([state.roll_dot, state.pitch_dot, state.yaw_dot]) - wind[3:]
-    # omega = body2inertial(np.array([state.roll_dot, state.pitch_dot, state.yaw_dot])
-    #  - wind[3:], state)
+    omega = np.array([state.ang_rate_x, state.ang_rate_y, state.ang_rate_z]) - wind[3:]
     velocity = np.array([state.vx, state.vy, state.vz]) - wind[:3]
 
     gravity_body_frame = inertial2body([0.0, 0.0, prop.mass()*GRAVITY_CONST], state)
-    F_propulsion = 0.5*RHO*S_prop*C_prop * \
+    F_propulsion = 0.5*AIR_DENSITY*S_prop*C_prop * \
         np.array([(k_motor*prop.control_input.throttle)**2-V_a**2, 0, 0])
     v_dot = (force_body_frame + gravity_body_frame + F_propulsion) / \
         prop.mass() - np.cross(omega, velocity)
@@ -52,7 +50,7 @@ def dynamics_kinetmatics_update(t: float, x: np.ndarray, u: np.ndarray, params: 
     # Momentum equations
     omega_dot = \
         prop.inv_inertia_matrix().dot(moment_vec - np.cross(omega, prop.inertia_matrix().dot(omega)))
-    update[StateVecIndices.ROLL_DOT:StateVecIndices.YAW_DOT+1] = omega_dot
+    update[StateVecIndices.ANG_RATE_X:StateVecIndices.ANG_RATE_Z+1] = omega_dot
     # Kinematics
     # Position updates
     update[StateVecIndices.X:StateVecIndices.Z +
@@ -60,14 +58,14 @@ def dynamics_kinetmatics_update(t: float, x: np.ndarray, u: np.ndarray, params: 
 
     # Angle updates
     update[StateVecIndices.ROLL:StateVecIndices.YAW +
-           1] = body2euler([state.roll_dot, state.pitch_dot, state.yaw_dot], state)
+           1] = body2euler([state.ang_rate_x, state.ang_rate_y, state.ang_rate_z], state)
     return update
 
 
 def build_nonlin_sys(prop: AircraftProperties, wind: np.ndarray) -> NonlinearIOSystem:
     inputs = ('elevator_deflection', 'aileron_deflection', 'rudder_deflection', 'throttle')
     states = ('x', 'y', 'z', 'roll', 'pitch', 'yaw', 'vx',
-              'vy', 'vz', 'roll_dot', 'pitch_dot', 'yaw_dot')
+              'vy', 'vz', 'ang_rate_x', 'ang_rate_y', 'ang_rate_z')
     system = NonlinearIOSystem(
         dynamics_kinetmatics_update, inputs=inputs, states=states,
         params={'prop': prop, 'wind': wind}, outputs=states,

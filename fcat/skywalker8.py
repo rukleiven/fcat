@@ -84,11 +84,11 @@ class IcedSkywalkerX8Properties(AircraftProperties):
         alpha = calc_angle_of_attack(state, wind)*180.0/np.pi
         c = self.constants.mean_chord
         delta_e = self.control_input.elevator_deflection
-        rot_airspeed = calc_rotational_airspeed(state, wind)
-        pitch_dot = rot_airspeed[1]
+        rot_airspeed_with_wind = calc_rotational_airspeed(state, wind)
+        ang_rate_y_r = rot_airspeed_with_wind[1]
         # TODO: If C_D_q becomes non-zero, should test term containing C_D_q
         return self.C_D_alpha(alpha, self.icing) + \
-            self.C_D_q(alpha, self.icing) * c / (2*airspeed) * pitch_dot + \
+            self.C_D_q(alpha, self.icing) * c / (2*airspeed) * ang_rate_y_r + \
             self.C_D_delta_e(alpha, self.icing)*np.abs(delta_e)
 
     def lift_coeff(self, state: State, wind: np.ndarray) -> float:
@@ -96,10 +96,10 @@ class IcedSkywalkerX8Properties(AircraftProperties):
         alpha = calc_angle_of_attack(state, wind)*180.0/np.pi
         c = self.constants.mean_chord
         delta_e = self.control_input.elevator_deflection
-        rot_airspeed = calc_rotational_airspeed(state, wind)
-        pitch_dot = rot_airspeed[1]
+        rot_airspeed_with_wind = calc_rotational_airspeed(state, wind)
+        ang_rate_y_r = rot_airspeed_with_wind[1]
         return self.C_L_alpha(alpha, self.icing) + \
-            (self.C_L_q(alpha, self.icing) * c / (2*airspeed)) * pitch_dot + \
+            (self.C_L_q(alpha, self.icing) * c / (2*airspeed)) * ang_rate_y_r + \
             self.C_L_delta_e(alpha, self.icing)*delta_e
 
     def side_force_coeff(self, state: State, wind: np.ndarray) -> float:
@@ -107,36 +107,36 @@ class IcedSkywalkerX8Properties(AircraftProperties):
         beta = calc_angle_of_sideslip(state, wind)*180.0/np.pi
         b = self.constants.wing_span
         delta_a = self.control_input.aileron_deflection
-        rot_airspeed = calc_rotational_airspeed(state, wind)
-        roll_dot = rot_airspeed[0]
-        yaw_dot = rot_airspeed[2]
+        rot_airspeed_with_wind = calc_rotational_airspeed(state, wind)
+        ang_rate_x_r = rot_airspeed_with_wind[0]
+        ang_rate_z_r = rot_airspeed_with_wind[2]
         return self.C_Y_beta(beta, self.icing) + \
-            (self.C_Y_p(beta, self.icing) * b / (2*airspeed)) * roll_dot + \
+            (self.C_Y_p(beta, self.icing) * b / (2*airspeed)) * ang_rate_x_r + \
             (self.C_Y_r(beta, self.icing) * b / (2*airspeed)) * \
-            yaw_dot + self.C_Y_delta_a(beta, self.icing)*delta_a
+            ang_rate_z_r + self.C_Y_delta_a(beta, self.icing)*delta_a
 
     def roll_moment_coeff(self, state: State, wind: np.ndarray) -> float:
         airspeed = np.sqrt(np.sum(calc_airspeed(state, wind)**2))
         beta = calc_angle_of_sideslip(state, wind)*180.0/np.pi
         b = self.constants.wing_span
         delta_a = self.control_input.aileron_deflection
-        rot_airspeed = calc_rotational_airspeed(state, wind)
-        roll_dot = rot_airspeed[0]
-        yaw_dot = rot_airspeed[2]
+        rot_airspeed_with_wind = calc_rotational_airspeed(state, wind)
+        ang_rate_x_r = rot_airspeed_with_wind[0]
+        ang_rate_z_r = rot_airspeed_with_wind[2]
         return self.C_l_beta(beta, self.icing) + \
-            (self.C_l_p(beta, self.icing) * b / (2*airspeed)) * roll_dot + \
+            (self.C_l_p(beta, self.icing) * b / (2*airspeed)) * ang_rate_x_r + \
             (self.C_l_r(beta, self.icing) * b / (2*airspeed)) * \
-            yaw_dot + self.C_l_delta_a(beta, self.icing)*delta_a
+            ang_rate_z_r + self.C_l_delta_a(beta, self.icing)*delta_a
 
     def pitch_moment_coeff(self, state: State, wind: np.ndarray) -> float:
         airspeed = np.sqrt(np.sum(calc_airspeed(state, wind)**2))
         alpha = calc_angle_of_attack(state, wind)*180.0/np.pi
         c = self.constants.mean_chord
         delta_e = self.control_input.elevator_deflection
-        rot_airspeed = calc_rotational_airspeed(state, wind)
-        pitch_dot = rot_airspeed[1]
+        rot_airspeed_with_wind = calc_rotational_airspeed(state, wind)
+        ang_rate_y_r = rot_airspeed_with_wind[1]
         return self.C_m_alpha(alpha, self.icing) + \
-            (self.C_m_q(alpha, self.icing) * c / (2*airspeed)) * pitch_dot + \
+            (self.C_m_q(alpha, self.icing) * c / (2*airspeed)) * ang_rate_y_r + \
             self.C_m_delta_e(alpha, self.icing)*delta_e
 
     def yaw_moment_coeff(self, state: State, wind: np.ndarray) -> float:
@@ -144,13 +144,13 @@ class IcedSkywalkerX8Properties(AircraftProperties):
         beta = calc_angle_of_sideslip(state, wind)*180.0/np.pi
         b = self.constants.wing_span
         delta_a = self.control_input.aileron_deflection
-        rot_airspeed = calc_rotational_airspeed(state, wind)
-        roll_dot = rot_airspeed[0]
-        yaw_dot = rot_airspeed[2]
+        rot_airspeed_with_wind = calc_rotational_airspeed(state, wind)
+        ang_rate_x_r = rot_airspeed_with_wind[0]
+        ang_rate_z_r = rot_airspeed_with_wind[2]
         return self.C_n_beta(beta, self.icing) + \
-            (self.C_n_p(beta, self.icing) * b / (2*airspeed)) * roll_dot + \
+            (self.C_n_p(beta, self.icing) * b / (2*airspeed)) * ang_rate_x_r + \
             (self.C_n_r(beta, self.icing) * b / (2*airspeed)) * \
-            yaw_dot + self.C_n_delta_a(beta, self.icing)*delta_a
+            ang_rate_z_r + self.C_n_delta_a(beta, self.icing)*delta_a
 
     def wing_span(self) -> float:
         return self.constants.wing_span

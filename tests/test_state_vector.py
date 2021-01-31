@@ -66,26 +66,26 @@ def test_vz():
     assert state.vz == pytest.approx(vz)
     assert np.allclose(state.state, [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, vz, 0.0, 0.0, 0.0])
 
-def test_roll_dot():
+def test_ang_rate_x():
     state = State()
-    roll_dot = 0.2
-    state.roll_dot = roll_dot
-    assert state.roll_dot == pytest.approx(roll_dot)
-    assert np.allclose(state.state, [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, roll_dot, 0.0, 0.0])
+    ang_rate_x = 0.2
+    state.ang_rate_x = ang_rate_x
+    assert state.ang_rate_x == pytest.approx(ang_rate_x)
+    assert np.allclose(state.state, [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, ang_rate_x, 0.0, 0.0])
 
 def test_pitch():
     state = State()
-    pitch_dot = 0.2
-    state.pitch_dot = pitch_dot
-    assert state.pitch_dot == pytest.approx(pitch_dot)
-    assert np.allclose(state.state, [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, pitch_dot, 0.0])
+    ang_rate_y = 0.2
+    state.ang_rate_y = ang_rate_y
+    assert state.ang_rate_y == pytest.approx(ang_rate_y)
+    assert np.allclose(state.state, [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, ang_rate_y, 0.0])
 
 def test_yaw():
     state = State()
-    yaw_dot = 0.2
-    state.yaw_dot = yaw_dot
-    assert state.yaw_dot == pytest.approx(yaw_dot)
-    assert np.allclose(state.state, [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, yaw_dot])
+    ang_rate_z = 0.2
+    state.ang_rate_z = ang_rate_z
+    assert state.ang_rate_z == pytest.approx(ang_rate_z)
+    assert np.allclose(state.state, [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, ang_rate_z])
 
 
 @pytest.mark.parametrize('vx, vy, vz, want', [

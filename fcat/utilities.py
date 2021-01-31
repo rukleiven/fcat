@@ -51,11 +51,11 @@ def calc_rotational_airspeed(state: State, wind: np.ndarray):
     """
 
     # Calculate relative rotational airspeed velocity vector components
-    roll_dot_r = state.roll_dot - wind[3]
-    pitch_dot_r = state.pitch_dot - wind[4]
-    yaw_dot_r = state.yaw_dot - wind[5]
+    ang_rate_x_r = state.ang_rate_x - wind[3]
+    ang_rate_y_r = state.ang_rate_y - wind[4]
+    ang_rate_z_r = state.ang_rate_z - wind[5]
 
-    airspeed_rot_vec = np.array([roll_dot_r, pitch_dot_r, yaw_dot_r])
+    airspeed_rot_vec = np.array([ang_rate_x_r, ang_rate_y_r, ang_rate_z_r])
     return airspeed_rot_vec
 
 
@@ -191,9 +191,9 @@ def body2inertial(vec: np.ndarray, state: State) -> np.ndarray:
     return inertial2body_rot_matrix(state).T.dot(vec)
 
 
-def euler_rot_matrix(state: State) -> np.ndarray:
+def body2euler_angles_transform_matrix(state: State) -> np.ndarray:
     """
-    Rotate the vector vec from body frame to euler angles
+    Rotate the vector with angles in body frame to euler angles
 
     :param vec: Vector of length 3 to be rotated
     :param state: Current state vector of the air plane
@@ -209,10 +209,10 @@ def euler_rot_matrix(state: State) -> np.ndarray:
 
 def body2euler(vec: np.ndarray, state: State) -> np.ndarray:
     """
-    Rotate the vector vec from inertial frame to body frame
+    Rotate the vector vec with angles in body frame to euler angles
 
     :param vec: Vector of length 3 to be rotated
     :param state: Current state vector of the air plane
     :param wind: Wind vector
     """
-    return euler_rot_matrix(state).dot(vec)
+    return body2euler_angles_transform_matrix(state).dot(vec)

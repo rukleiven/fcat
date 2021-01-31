@@ -18,9 +18,9 @@ class StateVecIndices(IntEnum):
     V_X = 6
     V_Y = 7
     V_Z = 8
-    ROLL_DOT = 9
-    PITCH_DOT = 10
-    YAW_DOT = 11
+    ANG_RATE_X = 9
+    ANG_RATE_Y = 10
+    ANG_RATE_Z = 11
 
 
 class State:
@@ -105,28 +105,28 @@ class State:
         self.state[StateVecIndices.V_Z] = value
 
     @property
-    def roll_dot(self) -> float:
-        return self.state[StateVecIndices.ROLL_DOT]
+    def ang_rate_x(self) -> float:
+        return self.state[StateVecIndices.ANG_RATE_X]
 
-    @roll_dot.setter
-    def roll_dot(self, value: float):
-        self.state[StateVecIndices.ROLL_DOT] = value
-
-    @property
-    def pitch_dot(self) -> float:
-        return self.state[StateVecIndices.PITCH_DOT]
-
-    @pitch_dot.setter
-    def pitch_dot(self, value: float):
-        self.state[StateVecIndices.PITCH_DOT] = value
+    @ang_rate_x.setter
+    def ang_rate_x(self, value: float):
+        self.state[StateVecIndices.ANG_RATE_X] = value
 
     @property
-    def yaw_dot(self) -> float:
-        return self.state[StateVecIndices.YAW_DOT]
+    def ang_rate_y(self) -> float:
+        return self.state[StateVecIndices.ANG_RATE_Y]
 
-    @yaw_dot.setter
-    def yaw_dot(self, value: float):
-        self.state[StateVecIndices.YAW_DOT] = value
+    @ang_rate_y.setter
+    def ang_rate_y(self, value: float):
+        self.state[StateVecIndices.ANG_RATE_Y] = value
+
+    @property
+    def ang_rate_z(self) -> float:
+        return self.state[StateVecIndices.ANG_RATE_Z]
+
+    @ang_rate_z.setter
+    def ang_rate_z(self, value: float):
+        self.state[StateVecIndices.ANG_RATE_Z] = value
 
     @property
     def velocity(self) -> float:

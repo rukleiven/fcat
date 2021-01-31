@@ -18,17 +18,17 @@ def test_kinematics():
         state.pitch = 0
         state.yaw = 0
         if i == 0:
-            state.roll_dot = 0.157079633
-            state.pitch_dot = 0
-            state.yaw_dot = 0
+            state.ang_rate_x = 0.157079633
+            state.ang_rate_y = 0
+            state.ang_rate_z = 0
         elif i == 1:
-            state.roll_dot = 0
-            state.pitch_dot = 0.157079633
-            state.yaw_dot = 0
+            state.ang_rate_x = 0
+            state.ang_rate_y = 0.157079633
+            state.ang_rate_z = 0
         elif i == 2:
-            state.roll_dot = 0
-            state.pitch_dot = 0
-            state.yaw_dot = 0.157079633
+            state.ang_rate_x = 0
+            state.ang_rate_y = 0
+            state.ang_rate_z = 0.157079633
 
         T, yout = input_output_response(system, t, U=0, X0=state.state)
         pos = np.array(yout[:3])
@@ -51,9 +51,9 @@ def test_kinematics():
         x_expect = 20*t
         y_expect = 1*t
         z_expect = 0.5*GRAVITY_CONST*t**2
-        roll_expect = state.roll_dot*t
-        pitch_expect = state.pitch_dot*t
-        yaw_expect = state.yaw_dot*t
+        roll_expect = state.ang_rate_x*t
+        pitch_expect = state.ang_rate_y*t
+        yaw_expect = state.ang_rate_z*t
         assert np.allclose(vx_inertial_expect, vel_inertial[0], atol = 7e-3)
         assert np.allclose(vy_inertial_expect, vel_inertial[1], atol = 5e-3)
         assert np.allclose(vz_inertial_expect, vel_inertial[2], atol = 8e-3)
@@ -120,16 +120,16 @@ def test_dynamics_moments():
         state.vx = 20.0
         state.vy = 1
         state.vz = 0
-        state.roll_dot = 0.157079633
-        state.pitch_dot = 0.157079633
-        state.yaw_dot = 0.157079633
+        state.ang_rate_x = 0.157079633
+        state.ang_rate_y = 0.157079633
+        state.ang_rate_z = 0.157079633
         params = {
             "prop": prop,
             "wind": np.zeros(6)
         }
         update = dynamics_kinetmatics_update(t = t, x = state.state, u = control_input.control_input, params = params)
         moments_aero = np.array([control_input.elevator_deflection, control_input.aileron_deflection, control_input.rudder_deflection])
-        omega = np.array([state.roll_dot, state.pitch_dot, state.yaw_dot])
+        omega = np.array([state.ang_rate_x, state.ang_rate_y, state.ang_rate_z])
         coreolis_term = prop.inv_inertia_matrix().dot(np.cross(omega, prop.inertia_matrix().dot(omega)))
 
         ang_rate_x_update_expect = (2/3)*moments_aero[0] - (1/3)*moments_aero[2] - coreolis_term[0]
