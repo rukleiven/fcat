@@ -158,17 +158,32 @@ class AircraftProperties(ABC):
     @abstractmethod
     def propeller_area(self) -> float:
         """
-        Return area swept by propeller
+        The propulsion force in body frame is given by;
+        F_p = 0.5*rho*S_p*C_p*([(k_m*delta_t)^2-V_a^2, 0, 0])
+
+        Where rho is air density, C_p is motor efficiency factor, k_m is motor constant,
+        delta_t is throttle input, V_a is airspeed and
+        S_p is the area swept by the propeller returned by this function
         """
 
     @abstractmethod
     def motor_constant(self) -> float:
         """
-        Return motor constant
+        The propulsion force in body frame is given by;
+        F_p = 0.5*rho*S_p*C_p*([(k_m*delta_t)^2-V_a^2, 0, 0])
+
+        Where rho is air density, C_p is motor efficiency factor,
+        S_p is the area swept by the propeller, delta_t is throttle input, V_a is airspeed and
+        k_m is the motor constant returned by this function
         """
 
     @abstractmethod
     def motor_efficiency_fact(self) -> float:
         """
-        Return motor efficiency factor
+        The propulsion force in body frame is given by;
+        F_p = 0.5*rho*S_p*C_p*([(k_m*delta_t)^2-V_a^2, 0, 0])
+
+        Where rho is air density, k_m is the motor constant,
+        S_p is the area swept by the propeller, delta_t is throttle input, V_a is airspeed and
+        C_p is motor efficiency factor returned by this function
         """

@@ -1,7 +1,7 @@
 from fcat import AircraftProperties
 from fcat import ControlInput, State
 import numpy as np
-from fcat.simulation_constants import RHO
+from fcat.simulation_constants import AIR_DENSITY
 from fcat.utilities import calc_airspeed
 
 __all__ = ('SimpleTestAircraftNoMoments', 'SimpleTestAircraftNoForces')
@@ -26,18 +26,18 @@ class SimpleTestAircraftNoMoments(AircraftProperties):
 
     def drag_coeff(self, state: State, wind: np.ndarray) -> float:
         V_a = np.sqrt(np.sum(calc_airspeed(state, wind)**2))
-        # Test func: F_drag = abs(delta_e)-> C_drag = (2/(wing_area*RHO*V_a^2)* abs(delta_e)
-        return 2/(self.wing_area()*RHO*V_a**2)*np.abs(self.control_input.elevator_deflection)
+        # Test func: F_drag = abs(delta_e)-> C_drag = (2/(wing_area*AIR_DENSITY*V_a^2)* abs(delta_e)
+        return 2/(self.wing_area()*AIR_DENSITY*V_a**2)*np.abs(self.control_input.elevator_deflection)
 
     def lift_coeff(self, state: State, wind: np.ndarray) -> float:
         V_a = np.sqrt(np.sum(calc_airspeed(state, wind)**2))
-        # Test func: F_lift = delta_a -> C_lift = 2/(wing_area*RHO*V_a^2)
-        return 2/(self.wing_area()*RHO*V_a**2)*self.control_input.aileron_deflection
+        # Test func: F_lift = delta_a -> C_lift = 2/(wing_area*AIR_DENSITY*V_a^2)
+        return 2/(self.wing_area()*AIR_DENSITY*V_a**2)*self.control_input.aileron_deflection
 
     def side_force_coeff(self, state: State, wind: np.ndarray) -> float:
         V_a = np.sqrt(np.sum(calc_airspeed(state, wind)**2))
-        # Test func: F_side_force = delta_r -> C_lift = 2/(wing_area*RHO*V_a^2)
-        return 2/(self.wing_area()*RHO*V_a**2)*self.control_input.rudder_deflection
+        # Test func: F_side_force = delta_r -> C_lift = 2/(wing_area*AIR_DENSITY*V_a^2)
+        return 2/(self.wing_area()*AIR_DENSITY*V_a**2)*self.control_input.rudder_deflection
 
     def roll_moment_coeff(self, state: State, wind: np.ndarray) -> float:
         return 0
@@ -70,7 +70,7 @@ class SimpleTestAircraftNoMoments(AircraftProperties):
         return 2
 
     def motor_efficiency_fact(self) -> float:
-        return 2/RHO
+        return 2/AIR_DENSITY
 
 
 class SimpleTestAircraftNoForces(AircraftProperties):
@@ -105,20 +105,24 @@ class SimpleTestAircraftNoForces(AircraftProperties):
 
     def roll_moment_coeff(self, state: State, wind: np.ndarray) -> float:
         V_a = np.sqrt(np.sum(calc_airspeed(state, wind)**2))
-        # Test func: Roll_moment = delta_e-> C_roll_moment = (2/(wing_area*wing_span*RHO*V_a^2)*delta_e
-        return 2/(self.wing_area()*self.wing_span()*RHO*V_a**2) *\
+        # Test func: Roll_moment = delta_e
+        # -> C_roll_moment = (2/(wing_area*wing_span*AIR_DENSITY*V_a^2)*delta_e
+        return 2/(self.wing_area()*self.wing_span()*AIR_DENSITY*V_a**2) *\
             self.control_input.elevator_deflection
 
     def pitch_moment_coeff(self, state: State, wind: np.ndarray) -> float:
         V_a = np.sqrt(np.sum(calc_airspeed(state, wind)**2))
-        # Test func: Pitch_moment = delta_a -> C_pitch_moment = (2/(wing_area*mean_chord*RHO*V_a^2)*delta_a
-        return 2/(self.wing_area()*self.mean_chord()*RHO*V_a**2) *\
+        # Test func: Pitch_moment = delta_a
+        # -> C_pitch_moment = (2/(wing_area*mean_chord*AIR_DENSITY*V_a^2)*delta_a
+        return 2/(self.wing_area()*self.mean_chord()*AIR_DENSITY*V_a**2) *\
             self.control_input.aileron_deflection
 
     def yaw_moment_coeff(self, state: State, wind: np.ndarray) -> float:
         V_a = np.sqrt(np.sum(calc_airspeed(state, wind)**2))
-        # Test func: yaw_moment = delta_r -> C_yaw_moment = (2/(wing_area*RHO*wing_span*V_a^2)*delta_r
-        return 2/(self.wing_area()*self.wing_span()*RHO*V_a**2)*self.control_input.rudder_deflection
+        # Test func: yaw_moment = delta_r
+        # -> C_yaw_moment = (2/(wing_area*AIR_DENSITY*wing_span*V_a^2)*delta_r
+        return 2/(self.wing_area()*self.wing_span()*AIR_DENSITY*V_a**2) *\
+            self.control_input.rudder_deflection
 
     def mass(self) -> float:
         return 2
@@ -144,4 +148,4 @@ class SimpleTestAircraftNoForces(AircraftProperties):
         return 0
 
     def motor_efficiency_fact(self) -> float:
-        return 2/RHO
+        return 2/AIR_DENSITY
