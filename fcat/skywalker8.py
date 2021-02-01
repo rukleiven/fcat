@@ -170,6 +170,9 @@ class IcedSkywalkerX8Properties(AircraftProperties):
     def motor_efficiency_fact(self) -> float:
         return self.constants.motor_efficiency_fact
 
+    def update_params(self, params: dict) -> None:
+        self.icing = params.get('icing', self.icing)
+
 
 def iced_clean_split(data: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     iced_data = []
