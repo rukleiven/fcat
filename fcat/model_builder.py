@@ -5,6 +5,7 @@ from fcat.utilities import (calc_airspeed, wind2body, inertial2body,
                             body2euler, body2inertial)
 from control.iosys import NonlinearIOSystem
 from fcat.simulation_constants import AIR_DENSITY, GRAVITY_CONST
+from fcat import PropertyUpdater
 
 __all__ = ('build_nonlin_sys',)
 
@@ -12,10 +13,14 @@ __all__ = ('build_nonlin_sys',)
 def dynamics_kinetmatics_update(t: float, x: np.ndarray, u: np.ndarray, params: dict) -> np.ndarray:
     prop = params['prop']
     wind = params['wind']
+    prop_updater = params.get('prop_updater', None)
     state = State(init=x)
 
     # Update the control inputs
     prop.control_input = ControlInput(init=u)
+
+    if prop_updater is not None:
+        prop.update_params(prop_updater.get_param_dict(t))
 
     update = np.zeros_like(x)
 
@@ -62,13 +67,23 @@ def dynamics_kinetmatics_update(t: float, x: np.ndarray, u: np.ndarray, params: 
     return update
 
 
-def build_nonlin_sys(prop: AircraftProperties, wind: np.ndarray) -> NonlinearIOSystem:
+def build_nonlin_sys(prop: AircraftProperties, wind: np.ndarray,
+                     prop_updater: PropertyUpdater = None) -> NonlinearIOSystem:
+    """
+    Construct a nonlinear IO system from passed input
+
+    :param prop: Property describing the aircraft
+    :param wind: Wind vector
+    :param prop_updater: Instance that returns a dictionary that is passed to the
+        update_params method of AircraftProperty, which evolves according to the
+        a discrete schedule as the simulation evolves.
+    """
     inputs = ('elevator_deflection', 'aileron_deflection', 'rudder_deflection', 'throttle')
     states = ('x', 'y', 'z', 'roll', 'pitch', 'yaw', 'vx',
               'vy', 'vz', 'ang_rate_x', 'ang_rate_y', 'ang_rate_z')
     system = NonlinearIOSystem(
         dynamics_kinetmatics_update, inputs=inputs, states=states,
-        params={'prop': prop, 'wind': wind}, outputs=states,
+        params={'prop': prop, 'wind': wind, 'prop_updater': prop_updater}, outputs=states,
         name='dynamics_kinematics'
     )
     return system

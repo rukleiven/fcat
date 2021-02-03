@@ -187,3 +187,11 @@ class AircraftProperties(ABC):
         S_p is the area swept by the propeller, delta_t is throttle input, V_a is airspeed and
         C_p is motor efficiency factor returned by this function
         """
+
+    def update_params(self, params: dict) -> None:
+        """
+        Update subclass specific types given as key-value pairs the passed dictionary
+
+        :param params: Subclass specific parameters
+        """
+        pass
