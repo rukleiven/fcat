@@ -5,14 +5,14 @@ from fcat.utilities import (calc_airspeed, wind2body, inertial2body,
                             body2euler, body2inertial)
 from control.iosys import NonlinearIOSystem
 from fcat.simulation_constants import AIR_DENSITY, GRAVITY_CONST
-from fcat import PropertyUpdater
+from fcat import PropertyUpdater, WindModel
 
 __all__ = ('build_nonlin_sys',)
 
 
 def dynamics_kinetmatics_update(t: float, x: np.ndarray, u: np.ndarray, params: dict) -> np.ndarray:
     prop = params['prop']
-    wind = params['wind']
+    wind = params['wind'].get(t)
     prop_updater = params.get('prop_updater', None)
     state = State(init=x)
 
@@ -67,7 +67,7 @@ def dynamics_kinetmatics_update(t: float, x: np.ndarray, u: np.ndarray, params: 
     return update
 
 
-def build_nonlin_sys(prop: AircraftProperties, wind: np.ndarray,
+def build_nonlin_sys(prop: AircraftProperties, wind: WindModel,
                      prop_updater: PropertyUpdater = None) -> NonlinearIOSystem:
     """
     Construct a nonlinear IO system from passed input
