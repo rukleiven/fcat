@@ -1,7 +1,8 @@
 import pytest
 import numpy as np
 from fcat import State
-from fcat.utilities import body2wind, inertial2body
+from control import TransferFunction
+from fcat.utilities import (body2wind, inertial2body, saturate)
 
 def body2wind_test_cases():
     state1 = State()
@@ -60,3 +61,20 @@ def test_inertial2body_test_cases():
 def test_inertial2body(state, vec, expect):
     rotated = inertial2body(vec, state)
     assert np.allclose(rotated, expect)
+
+def test_saturate():
+    min = -10
+    max = 10
+    val1 = saturate(-20, min, max)
+    val2 = saturate(-5,min,max)
+    val3 = saturate(20,min,max)
+    expect1 = -10
+    expect2 = -5
+    expect3 = 10
+    assert np.allclose(val1,expect1)
+    assert np.allclose(val2,expect2)
+    assert np.allclose(val3,expect3)
+
+
+
+
