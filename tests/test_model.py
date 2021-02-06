@@ -5,10 +5,12 @@ import numpy as np
 from fcat.utilities import body2inertial, inertial2body, wind2body, calc_airspeed
 from fcat.simulation_constants import GRAVITY_CONST
 from fcat.model_builder import dynamics_kinetmatics_update
+from fcat import no_wind
+
 def test_kinematics():
     control_input = ControlInput()
     prop = FrictionlessBall(control_input)
-    system = build_nonlin_sys(prop, np.zeros(6))
+    system = build_nonlin_sys(prop, no_wind())
     t = np.linspace(0.0, 10, 500, endpoint=True)
     state = State()
     state.vx = 20.0
@@ -80,13 +82,13 @@ def test_dynamics_forces():
         state.vz = 0
         params = {
             "prop": prop,
-            "wind": np.zeros(6)
+            "wind": no_wind()
         }
         update = dynamics_kinetmatics_update(t = t, x = state.state, u = control_input.control_input, params = params)
-        V_a = np.sqrt(np.sum(calc_airspeed(state, params['wind'])**2))
+        V_a = np.sqrt(np.sum(calc_airspeed(state, params['wind'].get(0.0))**2))
 
         forces_aero_wind_frame = np.array([-np.abs(control_input.elevator_deflection), control_input.aileron_deflection, -control_input.rudder_deflection])
-        forces_aero_body_frame = wind2body(forces_aero_wind_frame, state, params['wind'])
+        forces_aero_body_frame = wind2body(forces_aero_wind_frame, state, params['wind'].get(0))
         force_propulsion = np.array([(2*control_input.throttle)**2 - V_a**2, 0, 0])
         force_gravity = inertial2body(np.array([0, 0, prop.mass()*GRAVITY_CONST]), state)
         forces_body = forces_aero_body_frame + force_propulsion + force_gravity
@@ -125,7 +127,7 @@ def test_dynamics_moments():
         state.ang_rate_z = 0.157079633
         params = {
             "prop": prop,
-            "wind": np.zeros(6)
+            "wind": no_wind()
         }
         update = dynamics_kinetmatics_update(t = t, x = state.state, u = control_input.control_input, params = params)
         moments_aero = np.array([control_input.elevator_deflection, control_input.aileron_deflection, control_input.rudder_deflection])
