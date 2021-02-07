@@ -62,7 +62,10 @@ def generate_linearize_template():
                                           "be written. If not given, the model will not be stored")
 @click.option('--template', is_flag=True, help="If given, a template for the input file will "
                                                "be generated")
-def linearize(config: str, out: str, template: bool = False):
+@click.option('--trim', is_flag=True, help="If given, finding equilibrium with initial guess given "
+              "in yml file, otherwise linearize at the values "
+              "in yml file")
+def linearize(config: str, out: str, template: bool = False, trim: bool = False):
     """
     Linearize the model specified via the config file
     """
@@ -83,27 +86,31 @@ def linearize(config: str, out: str, template: bool = False):
     iu = [3]
     sys = build_nonlin_sys(aircraft, no_wind(), None)
 
-    print("Finding equillibrium point...")
     idx = [2, 3, 4, 6, 7, 8, 9, 10, 11]
     y0 = state.state
     iy = [0, 1, 5, 9, 10, 11]
 
-    xeq, ueq = find_eqpt(sys, state.state, u0=ctrl.control_input,  idx=idx, iu=iu, y0=y0, iy=iy)
+    xeq = state.state
+    ueq = ctrl.control_input
 
-    print("Equillibrium point found")
-    print()
-    print("Equilibrium state vector")
-    print(f"x: {xeq[0]: .2e} m, y: {xeq[1]: .2e} m, z: {xeq[2]: .2e} m")
-    print(f"roll: {rad2deg(xeq[3]): .1f} deg, pitch: {rad2deg(xeq[4]): .1f} deg"
-          ", yaw: {rad2deg(xeq[5]): .1f} deg")
-    print(f"vx: {xeq[6]: .2e} m/s, vy: {xeq[7]: .2e} m/s, vz: {xeq[8]: .2e} m/s")
-    print(f"Ang.rates: x: {rad2deg(xeq[9]): .1f} deg/s, y: {rad2deg(xeq[10]): .1f} deg/s"
-          ", z: {rad2deg(xeq[11]): .1f} deg/s")
-    print()
-    print("Equilibrium input control vector")
-    print(f"elevator: {rad2deg(ueq[0]): .1f} deg, aileron: {rad2deg(ueq[1]): .1f} deg"
-          ", rudder: {rad2deg(ueq[2]): .1f} deg, throttle: {ueq[3]: .1f}")
-    print()
+    if trim:
+        print("Finding equillibrium point...")
+        xeq, ueq = find_eqpt(sys, state.state, u0=ctrl.control_input,  idx=idx, iu=iu, y0=y0, iy=iy)
+        print("Equillibrium point found")
+        print()
+        print("Equilibrium state vector")
+        print(f"x: {xeq[0]: .2e} m, y: {xeq[1]: .2e} m, z: {xeq[2]: .2e} m")
+        print(f"roll: {rad2deg(xeq[3]): .1f} deg, pitch: {rad2deg(xeq[4]): .1f} deg"
+              ", yaw: {rad2deg(xeq[5]): .1f} deg")
+        print(f"vx: {xeq[6]: .2e} m/s, vy: {xeq[7]: .2e} m/s, vz: {xeq[8]: .2e} m/s")
+        print(f"Ang.rates: x: {rad2deg(xeq[9]): .1f} deg/s, y: {rad2deg(xeq[10]): .1f} deg/s"
+              ", z: {rad2deg(xeq[11]): .1f} deg/s")
+        print()
+        print("Equilibrium input control vector")
+        print(f"elevator: {rad2deg(ueq[0]): .1f} deg, aileron: {rad2deg(ueq[1]): .1f} deg"
+              ", rudder: {rad2deg(ueq[2]): .1f} deg, throttle: {ueq[3]: .1f}")
+        print()
+
     linearized = sys.linearize(xeq, ueq)
     print("Linearization finished")
     A, B, C, D = ssdata(linearized)
