@@ -1,6 +1,5 @@
-from fcat.actuator_model_builder import build_flying_wing_actuator_system
 from fcat.utilities import flying_wing2ctrl_input_matrix
-from fcat import ControlInput
+from fcat import ControlInput, build_flying_wing_actuator_system
 from control import input_output_response
 import numpy as np
 def test_actuator_model():

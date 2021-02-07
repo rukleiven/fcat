@@ -4,6 +4,8 @@ from fcat.utilities import flying_wing2ctrl_input_matrix
 from typing import Sequence
 import numpy as np
 
+__all__ = ('build_flying_wing_actuator_system',)
+
 
 def get_MIMO_state_space(elevon_time_constant: float, motor_time_constant: float) -> Sequence:
     A = np.array([[-1/elevon_time_constant, 0, 0, 0],
