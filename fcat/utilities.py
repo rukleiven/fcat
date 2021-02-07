@@ -2,6 +2,7 @@ from typing import Union
 import numpy as np
 import math
 from fcat import State
+from control.iosys import InputOutputSystem, InterconnectedSystem
 
 
 def aicc(num_data: int, num_features: int, rmse: float) -> float:
@@ -246,3 +247,19 @@ def flying_wing2ctrl_input_matrix():
 
     """
     return np.array([[0.5, 0.5, 0, 0], [-0.5, 0.5, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+
+
+def add_actuator(actuator_model: InputOutputSystem,
+                 aircraft_model: InputOutputSystem) -> InterconnectedSystem:
+    inputs = ('elevator_deflection_command', 'aileron_deflection_command',
+              'rudder_deflection_command', 'throttle_command')
+    states_aircraft = ('x', 'y', 'z', 'roll', 'pitch', 'yaw', 'vx',
+                       'vy', 'vz', 'ang_rate_x', 'ang_rate_y', 'ang_rate_z')
+    states_actuator = ('elevator_deflection', 'aileron_deflection',
+                       'rudder_deflection', 'throttle')
+    states = states_actuator + states_aircraft
+    sys = aircraft_model*actuator_model
+    sys.set_states(states)
+    sys.set_inputs(inputs)
+    sys.set_outputs(states_aircraft)
+    return sys

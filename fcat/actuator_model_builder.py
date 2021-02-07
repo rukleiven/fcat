@@ -23,8 +23,6 @@ def build_flying_wing_actuator_system(elevon_time_constant: float,
                                       motor_time_constat: float) -> LinearIOSystem:
     A_flying_wing, B_flying_wing, C_flying_wing, D_flying_wing = get_MIMO_state_space(
         elevon_time_constant, motor_time_constat)
-    print(A_flying_wing)
-    print(B_flying_wing)
     transform_matrix = flying_wing2ctrl_input_matrix()
     inv_transform_matrix = np.linalg.inv(transform_matrix)
     A = transform_matrix.dot(A_flying_wing).dot(inv_transform_matrix)

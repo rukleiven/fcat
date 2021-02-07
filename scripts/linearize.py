@@ -1,12 +1,13 @@
 import click
 from yaml import dump, load
 from control.iosys import find_eqpt
-from control import ssdata
+from control import ssdata, InputOutputSystem
 import numpy as np
 from fcat import (
     aircraft_property_from_dct, actuator_from_dct, ControlInput, State,
     build_nonlin_sys, no_wind
 )
+from fcat.utilities import add_actuator
 import json
 
 TEMPLATE_FILE = "linearize_template.yml"
@@ -77,10 +78,6 @@ def linearize(config: str, out: str, template: bool = False, trim: bool = False)
         data = load(infile)
 
     aircraft = aircraft_property_from_dct(data['aircraft'])
-    # TODO: Fix this!
-    actuator = actuator_from_dct(data['actuator'])
-    _ = actuator
-
     ctrl = ControlInput.from_dict(data['init_control'])
     state = State.from_dict(data['init_state'])
     iu = [2, 3]
@@ -111,7 +108,14 @@ def linearize(config: str, out: str, template: bool = False, trim: bool = False)
               f", rudder: {rad2deg(ueq[2]): .1f} deg, throttle: {ueq[3]: .1f}")
         print()
 
-    linearized = sys.linearize(xeq, ueq)
+    actuator = actuator_from_dct(data['actuator'])
+    if isinstance(actuator, InputOutputSystem):
+        aircraft_with_actuator = add_actuator(actuator, sys)
+        states_lin = np.concatenate((ueq, xeq))
+        linearized = aircraft_with_actuator.linearize(states_lin, ueq)
+    else:
+        linearized = sys.linearize(xeq, ueq)
+
     print("Linearization finished")
     A, B, C, D = ssdata(linearized)
 
@@ -126,7 +130,7 @@ def linearize(config: str, out: str, template: bool = False, trim: bool = False)
     print("y = Cx + Du")
     print()
 
-    print("Eigen values of A:")
+    print("Eigenvalues of A:")
     eig = np.linalg.eigvals(A)
     print('\n'.join(f'{x:.2e}' for x in eig))
 

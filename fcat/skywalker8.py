@@ -38,11 +38,13 @@ class IcedSkywalkerX8Properties(AircraftProperties):
         super().__init__(control_input)
         self.icing = icing
         self.constants = SkywalkerX8Constants()
-        self.C_D_alpha = InterpolatedProperty(C_D_a_data)
+        self.C_D_alpha = InterpolatedProperty(C_D_a_data, bounds_error=False,
+                                              fill_value='extrapolate')
         self.C_D_q = InterpolatedProperty(C_D_q_data, bounds_error=False, fill_value='extrapolate')
         self.C_D_delta_e = InterpolatedProperty(
             C_D_delta_e_data, bounds_error=False, fill_value='extrapolate')
-        self.C_L_alpha = InterpolatedProperty(C_L_a_data)
+        self.C_L_alpha = InterpolatedProperty(C_L_a_data, bounds_error=False,
+                                              fill_value='extrapolate')
         self.C_L_q = InterpolatedProperty(C_L_q_data, bounds_error=False, fill_value='extrapolate')
         self.C_L_delta_e = InterpolatedProperty(
             C_L_delta_e_data, bounds_error=False, fill_value='extrapolate')
