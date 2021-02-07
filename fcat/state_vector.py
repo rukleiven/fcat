@@ -1,3 +1,4 @@
+from typing import Dict
 import numpy as np
 from enum import IntEnum
 
@@ -131,3 +132,20 @@ class State:
     @property
     def velocity(self) -> float:
         return np.sqrt(self.vx**2 + self.vy**2 + self.vz**2)
+
+    @staticmethod
+    def from_dict(dct: Dict[str, float]):
+        state = State()
+        state.x = dct['x']
+        state.y = dct['y']
+        state.z = dct['z']
+        state.roll = dct['roll']
+        state.yaw = dct['yaw']
+        state.pitch = dct['pitch']
+        state.vx = dct['vx']
+        state.vy = dct['vy']
+        state.vz = dct['vz']
+        state.ang_rate_x = dct['ang_rate_x']
+        state.ang_rate_y = dct['ang_rate_y']
+        state.ang_rate_z = dct['ang_rate_z']
+        return state
