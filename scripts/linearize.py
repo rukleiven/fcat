@@ -58,7 +58,8 @@ def generate_linearize_template():
 
 @click.command()
 @click.option('--config', help="YML file describing the system")
-@click.option('--out', help="JSON file where the linearized state space model will be written")
+@click.option('--out', default=None, help="JSON file where the linearized state space model will "
+                                          "be written. If not given, the model will not be stored")
 @click.option('--template', is_flag=True, help="If given, a template for the input file will "
                                                "be generated")
 def linearize(config: str, out: str, template: bool = False):
@@ -132,6 +133,7 @@ def linearize(config: str, out: str, template: bool = False):
 
     }
 
-    with open(out, 'w') as outfile:
-        json.dump(linsys, outfile, indent=2, sort_keys=True)
-    print(f"Linear model written to {out}")
+    if out is not None:
+        with open(out, 'w') as outfile:
+            json.dump(linsys, outfile, indent=2, sort_keys=True)
+        print(f"Linear model written to {out}")
