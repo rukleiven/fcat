@@ -1,3 +1,4 @@
+from typing import Dict
 import numpy as np
 from fcat.utilities import flying_wing2ctrl_input_matrix
 __all__ = ('ControlInput',)
@@ -106,3 +107,12 @@ class ControlInput:
         """
         transform_matrix = np.linalg.inv(flying_wing2ctrl_input_matrix()[:2, :2])
         return transform_matrix.dot(ail_elev)
+
+    @staticmethod
+    def from_dict(dct: Dict[str, float]):
+        vec = ControlInput()
+        vec.elevator_deflection = dct['elevator_deflection']
+        vec.aileron_deflection = dct['aileron_deflection']
+        vec.rudder_deflection = dct['rudder_deflection']
+        vec.throttle = dct['throttle']
+        return vec

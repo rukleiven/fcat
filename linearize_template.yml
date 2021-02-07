@@ -1,0 +1,23 @@
+actuator:
+  type: none
+aircraft:
+  icing: 1.0
+  type: skywalkerX8
+init_control:
+  aileron_deflection: 0.0
+  elevator_deflection: 0.0
+  rudder_deflection: 0.0
+  throttle: 0.5
+init_state:
+  ang_rate_x: 0.0
+  ang_rate_y: 0.0
+  ang_rate_z: 0.0
+  pitch: 0.0
+  roll: 0.0
+  vx: 20.0
+  vy: 0.0
+  vz: 1.0
+  x: 0.0
+  y: 0.0
+  yaw: 0.0
+  z: 0.0

@@ -81,3 +81,14 @@ def test_elevon2aileron_elevator():
     expect2 = np.array([1, 0])
     assert np.allclose(val1,expect1)
     assert np.allclose(val2,expect2)
+
+def test_from_dict_ctrl_vect():
+    dct = {
+        'elevator_deflection': 0.5,
+        'aileron_deflection': 0.2,
+        'rudder_deflection': 0,
+        'throttle': 0.5
+    }
+    control_input = ControlInput.from_dict(dct)
+    cotnrol_input_expect = np.array([0.5, 0.2, 0, 0.5])
+    assert np.allclose(control_input.control_input,cotnrol_input_expect)

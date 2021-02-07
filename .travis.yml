@@ -8,4 +8,6 @@ install:
 script:
     - python --version
     - flake8 fcat/
+    - flake8 scripts/
+    - bash run_cli.sh
     - pytest tests/

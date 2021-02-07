@@ -100,3 +100,22 @@ def test_velocity(vx, vy, vz, want):
     state.vy = vy
     state.vz = vz
     assert state.velocity == pytest.approx(want)
+
+def test_from_dict_state():
+    dct = {
+        'x': 0.5,
+        'y': 0.2,
+        'z': 0,
+        'roll': 0.5,
+        'pitch': 0.5,
+        'yaw': 0.2,
+        'vx': 0,
+        'vy': 0.5,
+        'vz': 0.5,
+        'ang_rate_x': 0.2,
+        'ang_rate_y': 0,
+        'ang_rate_z': 0.5
+    }
+    state = State.from_dict(dct)
+    cotnrol_input_expect = np.array([0.5, 0.2, 0, 0.5, 0.5, 0.2, 0, 0.5, 0.5, 0.2, 0, 0.5])
+    assert np.allclose(state.state,cotnrol_input_expect)
