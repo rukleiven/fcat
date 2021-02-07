@@ -216,3 +216,33 @@ def body2euler(vec: np.ndarray, state: State) -> np.ndarray:
     :param wind: Wind vector
     """
     return body2euler_angles_transform_matrix(state).dot(vec)
+
+
+def saturate(val: float, min: float, max: float) -> float:
+    """
+    :param val: value subject to saturation
+    :param min: minimum value
+    :param max: maximum value
+
+    Returns the saturated value val
+    """
+    if val <= min:
+        return min
+    elif val >= max:
+        return max
+    else:
+        return val
+
+
+def flying_wing2ctrl_input_matrix():
+    """
+    Returns the matrix that transform from control vector with elevon deflections(flying-wing) to
+    control vector with aileron and elevator deflection is given by.
+
+    u = Tu_fw
+
+    Where u is the control input vector with aileron and elevator deflections,
+    u_fw is the control vector with elevon deflections and T is the matrix that is returned
+
+    """
+    return np.array([[0.5, 0.5, 0, 0], [-0.5, 0.5, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])

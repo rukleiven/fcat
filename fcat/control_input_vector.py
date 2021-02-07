@@ -1,5 +1,5 @@
 import numpy as np
-
+from fcat.utilities import flying_wing2ctrl_input_matrix
 __all__ = ('ControlInput',)
 
 
@@ -14,6 +14,7 @@ class ControlInput:
         The deflection angles are given in radians and throttle is an indicator variable
         (0 <= throttle <= 1) where 0 corresponds to no thrust and 1 corresponds maximum thrust.
     """
+
     def __init__(self, init: np.ndarray = None):
         self.control_input = init
         if init is None:
@@ -53,3 +54,55 @@ class ControlInput:
     @throttle.setter
     def throttle(self, value: float):
         self.control_input[3] = value
+
+    @property
+    def elevon_right(self) -> float:
+        elevon_vec = self.aileron_elevator2elevon(self.control_input[:2])
+        return elevon_vec[0]
+
+    @elevon_right.setter
+    def elevon_right(self, value: float):
+        elevon_vec = self.aileron_elevator2elevon(self.control_input[:2])
+        elevon_vec[0] = value
+        self.control_input[:2] = self.elevon2aileron_elevator(elevon_vec)
+
+    @property
+    def elevon_left(self) -> float:
+        elevon_vec = self.aileron_elevator2elevon(self.control_input[:2])
+        return elevon_vec[1]
+
+    @elevon_left.setter
+    def elevon_left(self, value: float):
+        elevon_vec = self.aileron_elevator2elevon(self.control_input[:2])
+        elevon_vec[1] = value
+        self.control_input[:2] = self.elevon2aileron_elevator(elevon_vec)
+
+    def elevon2aileron_elevator(self, elev: np.ndarray) -> np.ndarray:
+        """
+        Transform flying-wing elevoninput values to aileron-elevator values
+
+        :param elev: elevon input on form; [delta_er, delta_ea]
+            where delta_er is angular deflection on right elevon and
+            delta_ea is angular deflection on right elevon
+
+        return vector on form [delta_e, delta_a]
+        Where delta_e is angular deflection on elevator,
+        and delta_a is angular deflection on ailerons.
+        """
+        transform_matrix = flying_wing2ctrl_input_matrix()[:2, :2]
+        return transform_matrix.dot(elev)
+
+    def aileron_elevator2elevon(self, ail_elev: np.ndarray) -> np.ndarray:
+        """
+        Transform aileron-elevator input to flying-wing elevon values
+
+        :param ail_elev: aileron-elevator input on form [delta_e, delta_a]
+            Where delta_e is angular deflection on elevator,
+            and delta_a is angular deflection on ailerons.
+
+        return vector on form; [delta_er, delta_ea]
+        where delta_er is angular deflection on right elevon and
+        delta_ea is angular deflection on right elevon
+        """
+        transform_matrix = np.linalg.inv(flying_wing2ctrl_input_matrix()[:2, :2])
+        return transform_matrix.dot(ail_elev)
