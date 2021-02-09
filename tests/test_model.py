@@ -110,14 +110,15 @@ def test_dynamics_forces():
 
 def test_dynamics_moments():
     control_input = ControlInput()
-    prop = SimpleTestAircraftNoForces(control_input)
     t = 0
+
     for i in range (-50,51,50):
-        control_input.throttle = 0.0
+        control_input.throttle = i
         control_input.elevator_deflection = i
         control_input.aileron_deflection = i
         control_input.rudder_deflection = i
-
+        prop = SimpleTestAircraftNoForces(control_input)
+        
         state = State()
         state.vx = 20.0
         state.vy = 1
