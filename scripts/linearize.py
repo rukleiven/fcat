@@ -83,32 +83,32 @@ def linearize(config: str, out: str, template: bool = False, trim: bool = False)
 
     ctrl = ControlInput.from_dict(data['init_control'])
     state = State.from_dict(data['init_state'])
-    iu = [3]
+    iu = [2, 3]
     sys = build_nonlin_sys(aircraft, no_wind(), None)
 
-    idx = [2, 3, 4, 6, 7, 8, 9, 10, 11]
+    idx = [2, 6, 7, 8, 9, 10, 11]
     y0 = state.state
-    iy = [0, 1, 5, 9, 10, 11]
+    iy = [0, 1, 2, 5, 9, 10, 11]
 
     xeq = state.state
     ueq = ctrl.control_input
 
     if trim:
         print("Finding equillibrium point...")
-        xeq, ueq = find_eqpt(sys, state.state, u0=ctrl.control_input,  idx=idx, iu=iu, y0=y0, iy=iy)
+        xeq, ueq = find_eqpt(sys, state.state, u0=ctrl.control_input, idx=idx, y0=y0, iy=iy, iu=iu)
         print("Equillibrium point found")
         print()
         print("Equilibrium state vector")
         print(f"x: {xeq[0]: .2e} m, y: {xeq[1]: .2e} m, z: {xeq[2]: .2e} m")
         print(f"roll: {rad2deg(xeq[3]): .1f} deg, pitch: {rad2deg(xeq[4]): .1f} deg"
-              ", yaw: {rad2deg(xeq[5]): .1f} deg")
+              f", yaw: {rad2deg(xeq[5]): .1f} deg")
         print(f"vx: {xeq[6]: .2e} m/s, vy: {xeq[7]: .2e} m/s, vz: {xeq[8]: .2e} m/s")
         print(f"Ang.rates: x: {rad2deg(xeq[9]): .1f} deg/s, y: {rad2deg(xeq[10]): .1f} deg/s"
-              ", z: {rad2deg(xeq[11]): .1f} deg/s")
+              f", z: {rad2deg(xeq[11]): .1f} deg/s")
         print()
         print("Equilibrium input control vector")
         print(f"elevator: {rad2deg(ueq[0]): .1f} deg, aileron: {rad2deg(ueq[1]): .1f} deg"
-              ", rudder: {rad2deg(ueq[2]): .1f} deg, throttle: {ueq[3]: .1f}")
+              f", rudder: {rad2deg(ueq[2]): .1f} deg, throttle: {ueq[3]: .1f}")
         print()
 
     linearized = sys.linearize(xeq, ueq)
@@ -137,7 +137,6 @@ def linearize(config: str, out: str, template: bool = False, trim: bool = False)
         'D': D.tolist(),
         'xeq': xeq.tolist(),
         'ueq': ueq.tolist()
-
     }
 
     if out is not None:
