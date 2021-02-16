@@ -32,10 +32,10 @@ def dynamics_kinetmatics_update(t: float, x: np.ndarray, u: np.ndarray, params: 
     C_prop = prop.motor_efficiency_fact()
     k_motor = prop.motor_constant()
     qS = 0.5*AIR_DENSITY*S*V_a**2
-    coeff_wind_frame = np.array([-prop.drag_coeff(state, wind),
-                                 prop.side_force_coeff(state, wind),
-                                 -prop.lift_coeff(state, wind)])
-    force_body_frame = qS*wind2body(coeff_wind_frame, state, wind)
+    force_aero_wind_frame = qS*np.array([-prop.drag_coeff(state, wind),
+                                        prop.side_force_coeff(state, wind),
+                                        -prop.lift_coeff(state, wind)])
+    force_aero_body_frame = wind2body(force_aero_wind_frame, state, wind)
 
     moment_coeff_vec = np.array([b*prop.roll_moment_coeff(state, wind),
                                  c*prop.pitch_moment_coeff(state, wind),
@@ -47,7 +47,7 @@ def dynamics_kinetmatics_update(t: float, x: np.ndarray, u: np.ndarray, params: 
     gravity_body_frame = inertial2body([0.0, 0.0, prop.mass()*GRAVITY_CONST], state)
     F_propulsion = 0.5*AIR_DENSITY*S_prop*C_prop * \
         np.array([(k_motor*prop.control_input.throttle)**2-V_a**2, 0, 0])
-    v_dot = (force_body_frame + gravity_body_frame + F_propulsion) / \
+    v_dot = (force_aero_body_frame + gravity_body_frame + F_propulsion) / \
         prop.mass() - np.cross(omega, velocity)
 
     # Velocity update
