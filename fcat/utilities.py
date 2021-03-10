@@ -2,7 +2,7 @@ from typing import Union
 import numpy as np
 import math
 from fcat import State
-from control.iosys import InputOutputSystem, InterconnectedSystem
+from control.iosys import InputOutputSystem, InterconnectedSystem, summing_junction, interconnect
 
 
 def aicc(num_data: int, num_features: int, rmse: float) -> float:
@@ -258,8 +258,43 @@ def add_actuator(actuator_model: InputOutputSystem,
     states_actuator = ('elevator_deflection', 'aileron_deflection',
                        'rudder_deflection', 'throttle')
     states = states_actuator + states_aircraft
-    sys = aircraft_model*actuator_model
-    sys.set_states(states)
-    sys.set_inputs(inputs)
-    sys.set_outputs(states_aircraft)
-    return sys
+    system_with_actuator = aircraft_model*actuator_model
+    system_with_actuator.set_states(states)
+    system_with_actuator.set_inputs(inputs)
+    system_with_actuator.set_outputs(states_aircraft)
+    system_with_actuator.name = 'system_with_actuator'
+    return system_with_actuator
+
+
+def add_controllers(actuator_model: InputOutputSystem, aircraft_model: InputOutputSystem,
+                    longitudinal_controller: InputOutputSystem,
+                    lateral_controller: InputOutputSystem,
+                    airspeed_controller: InputOutputSystem) -> InterconnectedSystem:
+    feedback_summing_junction_airspeed = summing_junction(
+        inputs=['airspeed_command', '-system_with_actuator.vx'], outputs='airspeed_e',
+        name='feedback_summing_junction_airspeed')
+    feedback_summing_junction_pitch = summing_junction(
+        inputs=['pitch_command', '-system_with_actuator.pitch'], outputs='pitch_e',
+        name='feedback_summing_junction_pitch')
+    feedback_summing_junction_roll = summing_junction(
+        inputs=['roll_command', '-system_with_actuator.roll'], outputs='roll_e',
+        name='feedback_summing_junction_roll')
+    syslist = (actuator_model, aircraft_model, longitudinal_controller, lateral_controller,
+               airspeed_controller, feedback_summing_junction_airspeed,
+               feedback_summing_junction_roll, feedback_summing_junction_pitch)
+    inputs = ('airspeed_command', 'pitch_command', 'roll_command')
+    outputs = ('x', 'y', 'z', 'roll', 'pitch', 'yaw', 'vx',
+               'vy', 'vz', 'ang_rate_x', 'ang_rate_y', 'ang_rate_z')
+    interconnected_sys_cl = interconnect(syslist, inputs=inputs, outputs=outputs)
+    connections = np.zeros((17, 22))
+    connections[0, 16], connections[1, 17], connections[3, 18], connections[4, 0],\
+        connections[5, 1], connections[6, 2], connections[7, 3], connections[8, 21],\
+        connections[9, 20],  connections[12, 10], connections[14, 7],\
+        connections[16, 8], connections[10, 19] = 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+    input_map = np.zeros((17, 3))
+    input_map[11, 0], input_map[13, 2], input_map[15, 1] = 1, 1, 1
+    interconnected_sys_cl.set_connect_map(connections)
+    interconnected_sys_cl.set_input_map(input_map)
+    interconnected_sys_cl.name = 'feedback_loop'
+
+    return interconnected_sys_cl

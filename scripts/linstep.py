@@ -37,7 +37,7 @@ def linstep(mod: str, step_var: int, out: str, show: bool, tmax: float, nt: int,
     t = np.linspace(0.0, tmax, nt)
     u = np.zeros((4, nt))
     u[step_var, :] = step_size
-    T, yout, _ = forced_response(ss, T=t, U=u)
+    T, yout = forced_response(ss, T=t, U=u)
 
     if out != "":
         all_data = np.vstack((T, yout))

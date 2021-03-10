@@ -5,7 +5,6 @@ import numpy as np
 from fcat.skywalkerX8_data import *
 from fcat.utilities import calc_airspeed, calc_angle_of_attack, calc_angle_of_sideslip,\
     calc_rotational_airspeed
-
 from scipy.interpolate import interp1d
 
 __all__ = ('IcedSkywalkerX8Properties',)
