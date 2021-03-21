@@ -255,13 +255,16 @@ def add_actuator(actuator_model: InputOutputSystem,
               'rudder_deflection_command', 'throttle_command')
     states_aircraft = ('x', 'y', 'z', 'roll', 'pitch', 'yaw', 'vx',
                        'vy', 'vz', 'ang_rate_x', 'ang_rate_y', 'ang_rate_z')
+    outputs = ('x', 'y', 'z', 'roll', 'pitch', 'yaw', 'vx',
+               'vy', 'vz', 'ang_rate_x', 'ang_rate_y', 'ang_rate_z', 'airspeed',
+               'icing_left_wing', 'icing_right_wing')
     states_actuator = ('elevator_deflection', 'aileron_deflection',
                        'rudder_deflection', 'throttle')
     states = states_actuator + states_aircraft
     system_with_actuator = aircraft_model*actuator_model
     system_with_actuator.set_states(states)
     system_with_actuator.set_inputs(inputs)
-    system_with_actuator.set_outputs(states_aircraft)
+    system_with_actuator.set_outputs(outputs)
     system_with_actuator.name = 'system_with_actuator'
     return system_with_actuator
 
@@ -271,7 +274,7 @@ def add_controllers(actuator_model: InputOutputSystem, aircraft_model: InputOutp
                     lateral_controller: InputOutputSystem,
                     airspeed_controller: InputOutputSystem) -> InterconnectedSystem:
     feedback_summing_junction_airspeed = summing_junction(
-        inputs=['airspeed_command', '-system_with_actuator.vx'], outputs='airspeed_e',
+        inputs=['airspeed_command', '-system_with_actuator.airspeed'], outputs='airspeed_e',
         name='feedback_summing_junction_airspeed')
     feedback_summing_junction_pitch = summing_junction(
         inputs=['pitch_command', '-system_with_actuator.pitch'], outputs='pitch_e',

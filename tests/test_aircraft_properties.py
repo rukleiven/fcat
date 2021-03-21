@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 from fcat import State
 from fcat import ControlInput
-from fcat import IcedSkywalkerX8Properties
+from fcat import IcedSkywalkerX8Properties, AsymetricIcedSkywalkerX8Properties
 from fcat.skywalker8 import SkywalkerX8Constants
 from fcat.utilities import calc_airspeed
 

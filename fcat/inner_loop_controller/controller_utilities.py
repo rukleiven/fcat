@@ -2,10 +2,14 @@ from typing import Sequence
 import json
 from fcat.inner_loop_controller import hinfsyn
 import numpy as np
-from control import StateSpace, tf, augw, TransferFunction, tf2ss, ssdata, ss2tf
+from control import StateSpace, tf, augw, TransferFunction, tf2ss, ssdata, ss2tf, bode_plot
 from scipy.optimize import minimize_scalar
+__all__ = ('get_state_space_from_file', 'lateral_controller', 'longitudinal_controller',
+           'get_lateral_state_space', 'get_longitudinal_state_space')
 
-__all__ = ('get_state_space_from_file', 'longitudinal_controller', 'lateral_controller')
+
+def plot_frequency_respons(sys: TransferFunction):
+    mag, phase, omega = bode_plot(sys)
 
 
 def get_state_space_from_file(filename: str) -> Sequence:
@@ -21,7 +25,6 @@ def get_state_space_from_file(filename: str) -> Sequence:
 def get_lateral_state_space(state_space_filename: str) -> Sequence:
     A, B, _, _ = get_state_space_from_file(state_space_filename)
     lateral_index = np.array([1, 7, 11, 13, 15])  # [delta_a, roll, vy, ang_rate_x, ang_rate_z]
-
     A_lat = A[lateral_index[:, None], lateral_index]
     B_lat = B[lateral_index[:, None], 1]
 
@@ -37,7 +40,7 @@ def get_longitudinal_state_space(state_space_filename: str) -> Sequence:
     A = np.matrix(A)
     B = np.matrix(B)
     # [delta_e, delta_t, pitch, vx, vz, ang_rate_y]
-    longitudinal_index = np.array([0, 3,  8, 10, 12, 14])
+    longitudinal_index = np.array([0, 3, 8, 10, 12, 14])
     A_lon = A[longitudinal_index[:, None], longitudinal_index]
     B_lon = B[longitudinal_index[:, None], 0]
 
@@ -52,20 +55,23 @@ def lateral_controller(state_space_filename: str, controller_filename_out: str) 
     A_lat, B_lat, C_lat, D_lat = get_lateral_state_space(state_space_filename)
     lateral_statespace = StateSpace(A_lat, B_lat, C_lat, D_lat)
     # Filter design Variables:
-    M = 2
-    w_0 = 20.0
-    A_fact = 0.001
+    M = 2.6
+    w_0 = 1.0
+    A_fact = 0.00001
     gam = 0
-    while gam < 10 and w_0 < 20.2:
+    while gam < 1/0.09350813 and w_0 < 5.0:
         print(w_0)
-        print(gam)
+
         w_0 = w_0 + 0.1
-        W_C = tf([2], [1])
-        W_S = tf([1/M, w_0], [1, w_0*A_fact])
+        W_C = tf([35], [1])
+        W_S1 = tf([1/M, w_0], [1, w_0*A_fact])
+        W_S = tf([1/M, 2*w_0/np.sqrt(M), w_0**2], [1, 2*w_0*np.sqrt(A_fact), (w_0**2)*A_fact])
         W_T = tf([1, w_0/M], [A_fact, w_0])
         Plant = augw(lateral_statespace, W_S, W_C, W_T)
-        K, CL, gam, rcond = hinfsyn(Plant, 1, 1, 0.01)
-
+        K, CL, gam, rcond = hinfsyn(Plant, 1, 1, 0.001)
+        print(gam)
+    plot_frequency_respons(W_S)
+    plot_frequency_respons(W_S1)
     # Write controller to file:
     lat_controller = {
         'A': (K.A).tolist(),
@@ -83,20 +89,21 @@ def longitudinal_controller(state_space_filename: str, controller_filename_out: 
     longitudinal_statespace = StateSpace(A_lon, B_lon, C_lon, D_lon)
     # Filter design:
     M = 2
-    w_0 = 9.0
+    w_0 = 9
     A_fact = 0.001
 
     gam = 0
-    while gam < 1/0.30935949 and w_0 < 13.2:
+    while gam < 1/0.30935949 and w_0 < 10.2:
         print(gam)
         w_0 = w_0 + 0.1
-        W_C = tf([0.05], [1])
+        W_C = tf([2], [1])
         W_S = tf([1/M, w_0], [1, w_0*A_fact])
         W_T = tf([1, w_0/M], [A_fact, w_0])
 
         Plant = augw(longitudinal_statespace, W_S, W_C, W_T)
         K, CL, gam, rcond = hinfsyn(Plant, 1, 1, 0.01)
     # Write controller to file:
+    plot_frequency_respons(W_S)
     lon_controller = {
         'A': (K.A).tolist(),
         'B': (K.B).tolist(),
