@@ -12,7 +12,6 @@ from .simple_aircrafts import *
 from .actuator_model_builder import *
 from .cli_parsers import *
 
-
 __all__ = (state_vector.__all__ + aircraft_properties.__all__ + control_input_vector.__all__ +
            multidim_poly.__all__ + skywalker8.__all__ + frictionless_ball.__all__
            + simple_aircrafts.__all__ + model_builder.__all__ + property_updater.__all__ +
