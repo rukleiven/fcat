@@ -41,7 +41,7 @@ def pitch_hinf_controller(params={}) -> NonlinearIOSystem:
     """
     name = 'pitch_hinf_controller'
     inputs = 'pitch_error'
-    outputs = 'elavtor_deflection_command_command'
+    outputs = 'elevator_deflection_command'
 
     # Find number of controller states:
     A = params.get('A')

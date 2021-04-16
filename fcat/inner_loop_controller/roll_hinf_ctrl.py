@@ -11,7 +11,7 @@ def roll_hinf_update(t, x, u, params={}):
     B = params.get('B')
 
     roll_error = u[0]
-    x_dot = A.dot(x).transpose() + np.multiply(B, roll_error)
+    x_dot = A.dot(x.reshape(8, 1)) + np.multiply(B, roll_error)
     return x_dot
 
 
@@ -20,12 +20,14 @@ def roll_hinf_output(t, x, u, params={}):
     C = params.get('C')
     D = params.get('D')
 
-    aileron_deflection_min = params.get('aileron_deflection_min', -0.4)
-    aileron_deflection_max = params.get('aileron_deflection_max', 0.4)
+    aileron_deflection_min = params.get('aileron_deflection_min', -0.6)
+    aileron_deflection_max = params.get('aileron_deflection_max', 0.6)
     roll_error = u[0]
-
     y = C.dot(x) + D.dot(roll_error)
-
+    # print("roll_error:")
+    # print(roll_error)
+    # print("output")
+    # print(y)
     aileron_deflection_command = saturate(y, aileron_deflection_min, aileron_deflection_max)
     return aileron_deflection_command
 
@@ -42,7 +44,7 @@ def roll_hinf_controller(params={}) -> NonlinearIOSystem:
     """
     name = 'roll_hinf_controller'
     inputs = 'roll_error'
-    outputs = 'elavtor_deflection_command_command'
+    outputs = 'aileron_deflection_command'
 
     # Find number of controller states:
     A = params.get('A')

@@ -4,10 +4,10 @@ import numpy as np
 # (C_D_a_data, C_D_q_data, C_D_delta_e_data, C_L_a_data, C_L_q_data, C_L_delta_e_data)
 from fcat.skywalkerX8_data import *
 from fcat.utilities import calc_airspeed, calc_angle_of_attack, calc_angle_of_sideslip,\
-    calc_rotational_airspeed
+    calc_rotational_airspeed, wind2body
 from scipy.interpolate import interp1d
 
-__all__ = ('IcedSkywalkerX8Properties',)
+__all__ = ('IcedSkywalkerX8Properties', 'AsymetricIcedSkywalkerX8Properties', 'InterpolatedProperty')
 
 
 class SkywalkerX8Constants(NamedTuple):
@@ -173,6 +173,121 @@ class IcedSkywalkerX8Properties(AircraftProperties):
 
     def update_params(self, params: dict) -> None:
         self.icing = params.get('icing', self.icing)
+
+
+class AsymetricIcedSkywalkerX8Properties(AircraftProperties):
+    """
+    Properties for the SkywalkerX8 airplane. Parmaeter value are found
+    in ...
+    """
+
+    def __init__(self, control_input: ControlInput, icing_left_wing: float = 0.0,
+                 icing_right_wing: float = 0.0):
+        self.left_wing = IcedSkywalkerX8Properties(control_input, icing_left_wing)
+        self.right_wing = IcedSkywalkerX8Properties(control_input, icing_right_wing)
+        super().__init__(control_input)
+        self.lift_force_center_of_pressure = 0.3  # m
+        self.drag_force_center_of_pressure = 0.3  # m
+
+    @property
+    def control_input(self):
+        # Right wing is always equal to left wing
+        return self.left_wing.control_input
+
+    @control_input.setter
+    def control_input(self, control_input: ControlInput):
+        self.left_wing.control_input = control_input
+        self.right_wing.control_input = control_input
+
+    def drag_coeff(self, state: State, wind: np.ndarray) -> float:
+        return 1/2*(self.left_wing.drag_coeff(state, wind) +
+                    self.right_wing.drag_coeff(state, wind))
+
+    def lift_coeff(self, state: State, wind: np.ndarray) -> float:
+        return 1/2*(self.left_wing.lift_coeff(state, wind) +
+                    self.right_wing.lift_coeff(state, wind))
+
+    def side_force_coeff(self, state: State, wind: np.ndarray) -> float:
+        return 1/2*(self.left_wing.side_force_coeff(state, wind) +
+                    self.right_wing.side_force_coeff(state, wind))
+
+    def roll_moment_coeff(self, state: State, wind: np.ndarray) -> float:
+        asym_icing_moment = self.asymetric_moment_contribution(state, wind)
+        asym_roll_moment = asym_icing_moment[0]
+        return (1/2)*(self.left_wing.roll_moment_coeff(state, wind) +
+                      self.right_wing.roll_moment_coeff(state, wind)) + \
+            asym_roll_moment
+
+    def pitch_moment_coeff(self, state: State, wind: np.ndarray) -> float:
+        asym_icing_moment = self.asymetric_moment_contribution(state, wind)
+        asym_pitch_moment = asym_icing_moment[1]
+        return (1/2)*(self.left_wing.pitch_moment_coeff(state, wind) +
+                      self.right_wing.pitch_moment_coeff(state, wind)) + \
+            asym_pitch_moment
+
+    def yaw_moment_coeff(self, state: State, wind: np.ndarray) -> float:
+        asym_icing_moment = self.asymetric_moment_contribution(state, wind)
+        asym_yaw_moment = asym_icing_moment[2]
+        return (1/2)*(self.left_wing.yaw_moment_coeff(state, wind) +
+                      self.right_wing.yaw_moment_coeff(state, wind)) + \
+            asym_yaw_moment
+
+    def update_params(self, params: dict) -> None:
+        self.right_wing.update_params({'icing': params.get('icing_left_wing', self.left_wing.icing)})
+        self.left_wing.update_params(
+            {'icing': params.get('icing_right_wing', self.right_wing.icing)})
+
+    def asymetric_moment_contribution(self, state: State, wind: np.ndarray) -> np.ndarray:
+        force_vec_right_wing_wind_frame = (1/2)*np.array([-self.right_wing.drag_coeff(state, wind),
+                                                          self.right_wing.side_force_coeff(
+                                                              state, wind),
+                                                          -self.right_wing.lift_coeff(state, wind)])
+
+        force_vec_left_wing_wind_frame = (1/2)*np.array([-self.left_wing.drag_coeff(state, wind),
+                                                         self.left_wing.side_force_coeff(
+                                                             state, wind),
+                                                         -self.left_wing.lift_coeff(state, wind)])
+
+        force_vec_right_wing_body_frame = wind2body(force_vec_right_wing_wind_frame, state, wind)
+        force_vec_left_wing_body_frame = wind2body(force_vec_left_wing_wind_frame, state, wind)
+
+        drag_centre_of_pressure_left_wing = np.array([0, -self.drag_force_center_of_pressure, 0])
+        drag_centre_of_pressure_right_wing = -drag_centre_of_pressure_left_wing
+
+        # lift_centre_of_pressure_left_wing = np.array([0, -self.lift_force_center_of_pressure, 0])
+        # lift_centre_of_pressure_right_wing = -lift_centre_of_pressure_left_wing
+
+        asym_moment_left_wing = np.cross(
+            drag_centre_of_pressure_left_wing, force_vec_left_wing_body_frame)
+        asym_moment_right_wing = np.cross(
+            drag_centre_of_pressure_right_wing, force_vec_right_wing_body_frame)
+
+        asym_moment = asym_moment_left_wing + asym_moment_right_wing
+        return asym_moment
+
+    def wing_span(self) -> float:
+        return self.left_wing.wing_span()
+
+    def mean_chord(self) -> float:
+        return self.left_wing.mean_chord()
+
+    def wing_area(self) -> float:
+        return self.left_wing.wing_area()
+
+    def propeller_area(self) -> float:
+        return self.left_wing.propeller_area()
+
+    def motor_constant(self) -> float:
+        return self.left_wing.motor_constant()
+
+    def motor_efficiency_fact(self) -> float:
+        return self.left_wing.motor_efficiency_fact()
+
+    def mass(self):
+        return self.left_wing.mass()
+
+    def inertia_matrix(self):
+        return self.left_wing.inertia_matrix()
 
 
 def iced_clean_split(data: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:

@@ -2,7 +2,7 @@ from typing import Dict
 import numpy as np
 from enum import IntEnum
 
-__all__ = ('State',)
+__all__ = ('State', 'StateVecIndices')
 
 
 class StateVecIndices(IntEnum):
@@ -25,6 +25,9 @@ class StateVecIndices(IntEnum):
 
 
 class State:
+    names = ['x', 'y', 'z', 'roll', 'pitch', 'yaw', 'vx',
+             'vy', 'vz', 'ang_rate_x', 'ang_rate_y', 'ang_rate_z']
+
     def __init__(self, init: np.ndarray = None):
         self.state = init
         if init is None:
