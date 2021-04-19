@@ -1,6 +1,6 @@
 from typing import Dict
 import numpy as np
-from fcat.utilities import flying_wing2ctrl_input_matrix
+
 __all__ = ('ControlInput',)
 
 
@@ -15,6 +15,7 @@ class ControlInput:
         The deflection angles are given in radians and throttle is an indicator variable
         (0 <= throttle <= 1) where 0 corresponds to no thrust and 1 corresponds maximum thrust.
     """
+    names = ['elevator_deflection', 'aileron_deflection', 'rudder_deflection', 'throttle']
 
     def __init__(self, init: np.ndarray = None):
         self.control_input = init
@@ -78,6 +79,19 @@ class ControlInput:
         elevon_vec[1] = value
         self.control_input[:2] = self.elevon2aileron_elevator(elevon_vec)
 
+    def flying_wing2ctrl_input_matrix():
+        """
+        Returns the matrix that transform from control vector with elevon deflections(flying-wing) to
+        control vector with aileron and elevator deflection is given by.
+
+        u = Tu_fw
+
+        Where u is the control input vector with aileron and elevator deflections,
+        u_fw is the control vector with elevon deflections and T is the matrix that is returned
+
+        """
+        return
+
     def elevon2aileron_elevator(self, elev: np.ndarray) -> np.ndarray:
         """
         Transform flying-wing elevoninput values to aileron-elevator values
@@ -90,7 +104,9 @@ class ControlInput:
         Where delta_e is angular deflection on elevator,
         and delta_a is angular deflection on ailerons.
         """
-        transform_matrix = flying_wing2ctrl_input_matrix()[:2, :2]
+        flying_wing2ctrl_input_matrix = np.array([[0.5, 0.5, 0, 0], [-0.5, 0.5, 0, 0],
+                                                  [0, 0, 1, 0], [0, 0, 0, 1]])
+        transform_matrix = flying_wing2ctrl_input_matrix[:2, :2]
         return transform_matrix.dot(elev)
 
     def aileron_elevator2elevon(self, ail_elev: np.ndarray) -> np.ndarray:
@@ -105,7 +121,9 @@ class ControlInput:
         where delta_er is angular deflection on right elevon and
         delta_ea is angular deflection on right elevon
         """
-        transform_matrix = np.linalg.inv(flying_wing2ctrl_input_matrix()[:2, :2])
+        flying_wing2ctrl_input_matrix = np.array([[0.5, 0.5, 0, 0], [-0.5, 0.5, 0, 0],
+                                                  [0, 0, 1, 0], [0, 0, 0, 1]])
+        transform_matrix = np.linalg.inv(flying_wing2ctrl_input_matrix[:2, :2])
         return transform_matrix.dot(ail_elev)
 
     @staticmethod

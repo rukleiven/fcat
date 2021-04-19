@@ -10,4 +10,4 @@ def latcs(infile: str, outfile: str):
     """
     Run controller synthesis
     """
-    lateral_controller(infile, outfile)
+    lateral_controller(outfile, infile)

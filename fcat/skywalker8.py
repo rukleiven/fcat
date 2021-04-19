@@ -186,8 +186,16 @@ class AsymetricIcedSkywalkerX8Properties(AircraftProperties):
         self.left_wing = IcedSkywalkerX8Properties(control_input, icing_left_wing)
         self.right_wing = IcedSkywalkerX8Properties(control_input, icing_right_wing)
         super().__init__(control_input)
-        self.lift_force_center_of_pressure = 0.3  # m
-        self.drag_force_center_of_pressure = 0.3  # m
+
+        # Distance vectors from CoG to right wing center of pressure
+        self.lift_force_center_of_pressure_rw = np.array([0.0, 0.4, 0.0])  # m
+        self.drag_force_center_of_pressure_rw = np.array([0.0, 0.25, 0.0])  # m
+        self.side_force_center_of_pressure_rw = np.array([0.0, 0.2, 0.0])  # m
+
+        # Distance vectors from CoG to right wing center of pressure
+        self.lift_force_center_of_pressure_lw = np.array([0.0, -0.4, 0.0])  # m
+        self.drag_force_center_of_pressure_lw = np.array([0.0, -0.25, 0.0])  # m
+        self.side_force_center_of_pressure_lw = np.array([0.0, -0.2, 0.0])  # m
 
     @property
     def control_input(self):
@@ -248,20 +256,37 @@ class AsymetricIcedSkywalkerX8Properties(AircraftProperties):
                                                              state, wind),
                                                          -self.left_wing.lift_coeff(state, wind)])
 
-        force_vec_right_wing_body_frame = wind2body(force_vec_right_wing_wind_frame, state, wind)
-        force_vec_left_wing_body_frame = wind2body(force_vec_left_wing_wind_frame, state, wind)
+        drag_vec_right_wing_body_frame = wind2body(
+            [force_vec_right_wing_wind_frame[0], 0, 0], state, wind)
+        drag_vec_left_wing_body_frame = wind2body(
+            [force_vec_left_wing_wind_frame[0], 0, 0], state, wind)
 
-        drag_centre_of_pressure_left_wing = np.array([0, -self.drag_force_center_of_pressure, 0])
-        drag_centre_of_pressure_right_wing = -drag_centre_of_pressure_left_wing
+        side_force_vec_right_wing_body_frame = wind2body(
+            [0, force_vec_right_wing_wind_frame[1], 0], state, wind)
+        side_force_vec_left_wing_body_frame = wind2body(
+            [0, force_vec_left_wing_wind_frame[1], 0], state, wind)
 
-        # lift_centre_of_pressure_left_wing = np.array([0, -self.lift_force_center_of_pressure, 0])
-        # lift_centre_of_pressure_right_wing = -lift_centre_of_pressure_left_wing
+        lift_force_vec_right_wing_body_frame = wind2body(
+            [0, 0, force_vec_right_wing_wind_frame[2]], state, wind)
+        lift_force_vec_left_wing_body_frame = wind2body(
+            [0, 0, force_vec_left_wing_wind_frame[2]], state, wind)
 
-        asym_moment_left_wing = np.cross(
-            drag_centre_of_pressure_left_wing, force_vec_left_wing_body_frame)
-        asym_moment_right_wing = np.cross(
-            drag_centre_of_pressure_right_wing, force_vec_right_wing_body_frame)
-
+        drag_asym_moment_left_wing = np.cross(
+            self.drag_force_center_of_pressure_lw, drag_vec_left_wing_body_frame)
+        side_force_asym_moment_left_wing = np.cross(
+            self.side_force_center_of_pressure_lw, side_force_vec_left_wing_body_frame)
+        lift_asym_moment_left_wing = np.cross(
+            self.lift_force_center_of_pressure_lw, lift_force_vec_left_wing_body_frame)
+        asym_moment_left_wing = drag_asym_moment_left_wing + side_force_asym_moment_left_wing\
+            + lift_asym_moment_left_wing
+        drag_asym_moment_right_wing = np.cross(
+            self.drag_force_center_of_pressure_rw, drag_vec_right_wing_body_frame)
+        side_force_asym_moment_right_wing = np.cross(
+            self.drag_force_center_of_pressure_rw, side_force_vec_right_wing_body_frame)
+        lift_asym_moment_right_wing = np.cross(
+            self.lift_force_center_of_pressure_rw, lift_force_vec_right_wing_body_frame)
+        asym_moment_right_wing = drag_asym_moment_right_wing + side_force_asym_moment_right_wing\
+            + lift_asym_moment_right_wing
         asym_moment = asym_moment_left_wing + asym_moment_right_wing
         return asym_moment
 

@@ -1,7 +1,7 @@
 actuator:
-  type: flying_wings
   elevon_time_constant: 0.28647549202
   motor_time_constant: 0.2
+  type: flying_wings
 aircraft:
   icing: 0.0
   type: skywalkerX8

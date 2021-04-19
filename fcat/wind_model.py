@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+# from copy import deepcopy
 import numpy as np
 
 __all__ = ('WindModel', 'ConstantWind', 'no_wind')
@@ -23,6 +24,7 @@ class ConstantWind(WindModel):
     """
     Simple wind model where the wind is a constant vector
     """
+
     def __init__(self, wind: np.ndarray):
         self.wind = wind
 

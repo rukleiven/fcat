@@ -1,8 +1,9 @@
-from typing import Union
+from typing import Union, Sequence, Callable
 import numpy as np
 import math
-from fcat import State
 from control.iosys import InputOutputSystem, InterconnectedSystem, summing_junction, interconnect
+from fcat import State
+from copy import deepcopy
 
 
 def aicc(num_data: int, num_features: int, rmse: float) -> float:
@@ -33,7 +34,6 @@ def calc_airspeed(state: State, wind: np.ndarray):
 
     Return the airspeed vector
     """
-
     # Calculate relative airspeed velocity vector components
     vx_r = state.vx - wind[0]
     vy_r = state.vy - wind[1]
@@ -249,6 +249,52 @@ def flying_wing2ctrl_input_matrix():
     return np.array([[0.5, 0.5, 0, 0], [-0.5, 0.5, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
 
 
+def collect_outputs(syslist: Sequence) -> list:
+    """
+    """
+    outputs = []
+    for system in syslist:
+        outputs += list(system.output_index.keys())
+    return outputs
+
+
+def is_unique(data: Sequence) -> bool:
+    """
+    """
+    return len(set(data)) == len(data)
+
+
+def collect_inputs(syslist: Sequence) -> list:
+    """
+    """
+    inputs = []
+    for system in syslist:
+        inputs += list(system.input_index.keys())
+    return inputs
+
+
+def create_connection_matrix(inputs: Sequence, outputs: Sequence) -> np.ndarray:
+
+    if not is_unique(outputs):
+        # TODO: Multiple
+        return None
+    connection_matrix = np.zeros((len(inputs), len(outputs)))
+    for inp_i in range(len(inputs)):
+        for outp_i in range(len(outputs)):
+            if inputs[inp_i] == outputs[outp_i]:
+                connection_matrix[inp_i, outp_i] = 1
+    return connection_matrix
+
+
+def create_input_map(external_inputs: Sequence, internal_inputs: Sequence):
+    input_map = np.zeros((len(internal_inputs), len(external_inputs)))
+    for ext_index in range(len(external_inputs)):
+        for int_index in range(len(internal_inputs)):
+            if external_inputs[ext_index] == internal_inputs[int_index]:
+                input_map[int_index, ext_index] = 1
+    return input_map
+
+
 def add_actuator(actuator_model: InputOutputSystem,
                  aircraft_model: InputOutputSystem) -> InterconnectedSystem:
     inputs = ('elevator_deflection_command', 'aileron_deflection_command',
@@ -256,8 +302,7 @@ def add_actuator(actuator_model: InputOutputSystem,
     states_aircraft = ('x', 'y', 'z', 'roll', 'pitch', 'yaw', 'vx',
                        'vy', 'vz', 'ang_rate_x', 'ang_rate_y', 'ang_rate_z')
     outputs = ('x', 'y', 'z', 'roll', 'pitch', 'yaw', 'vx',
-               'vy', 'vz', 'ang_rate_x', 'ang_rate_y', 'ang_rate_z', 'airspeed',
-               'icing_left_wing', 'icing_right_wing')
+               'vy', 'vz', 'ang_rate_x', 'ang_rate_y', 'ang_rate_z')
     states_actuator = ('elevator_deflection', 'aileron_deflection',
                        'rudder_deflection', 'throttle')
     states = states_actuator + states_aircraft
@@ -274,13 +319,13 @@ def add_controllers(actuator_model: InputOutputSystem, aircraft_model: InputOutp
                     lateral_controller: InputOutputSystem,
                     airspeed_controller: InputOutputSystem) -> InterconnectedSystem:
     feedback_summing_junction_airspeed = summing_junction(
-        inputs=['airspeed_command', '-system_with_actuator.airspeed'], outputs='airspeed_e',
+        inputs=['airspeed_command', '-airspeed'], outputs='airspeed_error',
         name='feedback_summing_junction_airspeed')
     feedback_summing_junction_pitch = summing_junction(
-        inputs=['pitch_command', '-system_with_actuator.pitch'], outputs='pitch_e',
+        inputs=['pitch_command', '-pitch'], outputs='pitch_error',
         name='feedback_summing_junction_pitch')
     feedback_summing_junction_roll = summing_junction(
-        inputs=['roll_command', '-system_with_actuator.roll'], outputs='roll_e',
+        inputs=['roll_command', '-roll'], outputs='roll_error',
         name='feedback_summing_junction_roll')
     syslist = (actuator_model, aircraft_model, longitudinal_controller, lateral_controller,
                airspeed_controller, feedback_summing_junction_airspeed,
@@ -288,16 +333,55 @@ def add_controllers(actuator_model: InputOutputSystem, aircraft_model: InputOutp
     inputs = ('airspeed_command', 'pitch_command', 'roll_command')
     outputs = ('x', 'y', 'z', 'roll', 'pitch', 'yaw', 'vx',
                'vy', 'vz', 'ang_rate_x', 'ang_rate_y', 'ang_rate_z')
+
     interconnected_sys_cl = interconnect(syslist, inputs=inputs, outputs=outputs)
-    connections = np.zeros((17, 22))
-    connections[0, 16], connections[1, 17], connections[3, 18], connections[4, 0],\
-        connections[5, 1], connections[6, 2], connections[7, 3], connections[8, 21],\
-        connections[9, 20],  connections[12, 10], connections[14, 7],\
-        connections[16, 8], connections[10, 19] = 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
-    input_map = np.zeros((17, 3))
-    input_map[11, 0], input_map[13, 2], input_map[15, 1] = 1, 1, 1
+    connections = create_connection_matrix(collect_inputs(syslist), collect_outputs(syslist))
+    input_map = create_input_map(inputs, collect_inputs(syslist))
     interconnected_sys_cl.set_connect_map(connections)
     interconnected_sys_cl.set_input_map(input_map)
     interconnected_sys_cl.name = 'feedback_loop'
 
     return interconnected_sys_cl
+
+
+def is_state_variable(output: str) -> bool:
+    return output in State.names
+
+
+# def is_control_signal(output: str) -> bool:
+#    return output in ControlInput.names
+
+
+def create_aircraft_output_fonction(config: dict) \
+                                    -> Callable[[float, np.ndarray, np.ndarray, dict], np.ndarray]:
+
+    config_cpy = deepcopy(config)
+    outputs = config_cpy["outputs"]
+
+    def output_func(t: float, x: np.ndarray, u: np.ndarray, params: dict) -> np.ndarray:
+        prop = params['prop']
+        wind = params['wind'].get(t)
+
+        out = np.zeros(len(outputs))
+        for i, output in enumerate(outputs):
+            if is_state_variable(output):
+                out[i] = x[State.names.index(output)]
+            # elif is_control_signal(output):
+                # out[i] = x[ctrl_vecolInput.names.index[output]]
+                # None
+                # TODO: Add elevons_right nad elevons_left option
+            elif output == "airspeed":
+                state = State(x)
+                out[i] = np.sqrt(np.sum(calc_airspeed(state, wind)**2))
+            elif output == "icing":
+                if hasattr(prop, "icing"):
+                    out[i] = prop.icing
+                elif hasattr(prop, "left_wing") and hasattr(prop, "right_wing"):
+                    out[i] = (prop.left_wing.icing + prop.right_wing.icing)/2.0
+            elif output == "icing_left_wing":
+                out[i] = prop.icing_left_wing
+            elif output == "icing_right_wing":
+                out[i] = prop.icing_right_wing
+        return out
+
+    return output_func

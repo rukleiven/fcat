@@ -1,6 +1,7 @@
 import numpy as np
 from fcat import no_wind, ConstantWind
 
+
 def test_constant_wind():
     wind_model = no_wind()
     assert np.allclose(wind_model.get(2.0), np.zeros(6))

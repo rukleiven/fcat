@@ -45,6 +45,7 @@ class MultiDimPolynomial:
 
         y = c0 + c1*x1 + c2*x2 + c2*x2^2 + c3*x2^3 + c4*x1*x2 + c5*x1*x2^2 + c6*x1*x2^3
     """
+
     def __init__(self, data: np.ndarray, order: Sequence[int]):
         self.data = data
         self.order = order

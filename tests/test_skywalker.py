@@ -8,6 +8,7 @@ from fcat.simulation_constants import AIR_DENSITY
 from fcat.model_builder import dynamics_kinetmatics_update
 from fcat import no_wind
 
+
 def test_skywalkerX8_force_x_dir():
     control_input = ControlInput()
     control_input.throttle = 0.0
@@ -21,14 +22,15 @@ def test_skywalkerX8_force_x_dir():
         state.yaw = state.yaw + 0.05
         x_update = np.zeros(11)
         constants = SkywalkerX8Constants()
-        for i in range (0, 11):
+        for i in range(0, 11):
             control_input.throttle = i*0.1
             prop = IcedSkywalkerX8Properties(control_input)
             params = {
                 "prop": prop,
                 "wind": no_wind()
             }
-            update = dynamics_kinetmatics_update(t, x = state.state, u = control_input.control_input, params = params)
+            update = dynamics_kinetmatics_update(
+                t, x=state.state, u=control_input.control_input, params=params)
             x_update[i] = update[6]
 
         S_p = constants.propeller_area
@@ -36,7 +38,7 @@ def test_skywalkerX8_force_x_dir():
         k_m = constants.motor_constant
         m = constants.mass
         K = 2*m/(AIR_DENSITY*S_p*C_p*k_m**2)
-        for i in range(0,10):
+        for i in range(0, 10):
             throttle_0 = i*0.1
             throttle_1 = (i+1)*0.1
             assert np.allclose(K*(x_update[i+1]-x_update[i]), throttle_1**2 - throttle_0**2)

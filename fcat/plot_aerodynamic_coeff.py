@@ -1,7 +1,7 @@
 from matplotlib import pyplot as plt
 from typing import Sequence
 from fcat import AircraftProperties, State, StateVecIndices
-from fcat.utilities import calc_angle_of_sideslip
+from fcat.utilities import calc_angle_of_sideslip, calc_angle_of_attack
 import numpy as np
 
 
@@ -10,7 +10,7 @@ __all__ = ('plot_aero_coeff',)
 
 def plot_aero_coeff(prop: Sequence[AircraftProperties], states: Sequence[State],
                     wind: np.ndarray, index: StateVecIndices) -> plt.Figure:
-    fig = plt.figure()
+    fig = plt.figure(figsize=(7, 4))
     ax_drag = fig.add_subplot(2, 3, 1)
     ax_side_force = fig.add_subplot(2, 3, 2)
     ax_lift = fig.add_subplot(2, 3, 3)
@@ -20,7 +20,11 @@ def plot_aero_coeff(prop: Sequence[AircraftProperties], states: Sequence[State],
 
     x = [s.state[index] for s in states]
     x = [calc_angle_of_sideslip(s, wind.wind)*180/np.pi for s in states]
-    xlabel = "AOS"
+    _ = calc_angle_of_attack(states[0], wind.wind)
+    xlabel = "AOA"
+    # x_min = np.min(x)
+    # x_max = np.max(x)
+    xticks = np.arange(-5, 20, 5)
     for p in prop:
         drag = [p.drag_coeff(s, wind.wind) for s in states]
         side_force = [p.side_force_coeff(s, wind.wind) for s in states]
@@ -28,6 +32,12 @@ def plot_aero_coeff(prop: Sequence[AircraftProperties], states: Sequence[State],
         roll = [p.roll_moment_coeff(s, wind.wind) for s in states]
         pitch = [p.pitch_moment_coeff(s, wind.wind) for s in states]
         yaw = [p.yaw_moment_coeff(s, wind.wind) for s in states]
+        ax_drag.set_xticks(xticks)
+        ax_side_force.set_xticks(xticks)
+        ax_lift.set_xticks(xticks)
+        ax_roll_moment.set_xticks(xticks)
+        ax_pitch_moment.set_xticks(xticks)
+        ax_yaw_moment.set_xticks(xticks)
 
         ax_drag.plot(x, drag, label=p.__class__)
         ax_side_force.plot(x, side_force, label=p.__class__)

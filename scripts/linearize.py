@@ -81,7 +81,11 @@ def linearize(config: str, out: str, template: bool = False, trim: bool = False)
     ctrl = ControlInput.from_dict(data['init_control'])
     state = State.from_dict(data['init_state'])
     iu = [2, 3]
-    sys = build_nonlin_sys(aircraft, no_wind(), None)
+    config_dict = {"outputs": ["x", "y", "z", "roll", "pitch", "yaw",
+                               "vx", "vy", "vz", "ang_rate_x", "ang_rate_y",
+                               "ang_rate_z"]
+                   }
+    sys = build_nonlin_sys(aircraft, no_wind(), config_dict['outputs'], None)
 
     idx = [2, 6, 7, 8, 9, 10, 11]
     y0 = state.state

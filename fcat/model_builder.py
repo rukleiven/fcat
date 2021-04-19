@@ -1,3 +1,4 @@
+# from fcat.wind_model import ConstantWind
 import numpy as np
 from fcat import AircraftProperties, ControlInput, State
 from fcat.state_vector import StateVecIndices
@@ -6,7 +7,7 @@ from fcat.utilities import (calc_airspeed, wind2body, inertial2body,
 from control.iosys import NonlinearIOSystem
 from fcat.simulation_constants import AIR_DENSITY, GRAVITY_CONST
 from fcat import PropertyUpdater, WindModel
-
+from typing import Callable, Sequence
 __all__ = ('build_nonlin_sys',)
 
 
@@ -15,13 +16,13 @@ def dynamics_kinetmatics_update(t: float, x: np.ndarray, u: np.ndarray, params: 
     wind = params['wind'].get(t)
     prop_updater = params.get('prop_updater', None)
     state = State(init=x)
+    # wind_translational = inertial2body(wind[:3], state)
+    # wind = np.array([wind_translational[0], wind_translational[1], wind_translational[2], 0, 0, 0])
     # Update the control inputs
     prop.control_input = ControlInput(init=u)
     if prop_updater is not None:
         prop.update_params(prop_updater.get_param_dict(t))
-
     update = np.zeros_like(x)
-
     V_a = np.sqrt(np.sum(calc_airspeed(state, wind)**2))
     b = prop.wing_span()
     S = prop.wing_area()
@@ -66,33 +67,14 @@ def dynamics_kinetmatics_update(t: float, x: np.ndarray, u: np.ndarray, params: 
     return update
 
 
-def output_function(t: float, x: np.ndarray, u: np.ndarray, params: dict):
-    wind = params['wind'].get(t)
-    prop = params['prop']
-    state = State(init=x)
-    V_a = np.sqrt(np.sum(calc_airspeed(state, wind)**2))
-    output = np.array([x[0], x[1], x[2], x[3], x[4], x[5], x[6], x[7],
-                       x[8], x[9], [10], x[11], V_a, prop.left_wing.icing,
-                       prop.right_wing.icing])
-    return output
+def out_f(t: float, x: np.ndarray, u: np.ndarray, params: dict):
+    return x
 
 
-def quick_fix_update_func(t: float, x: np.ndarray, u: np.ndarray, params: dict):
-    wind = params['wind'].get(t)
-    state = State(init=x)
-    V_a = np.sqrt(np.sum(calc_airspeed(state, wind)**2))
-    output = np.zeros_like(x)
-    for i in range(len(output)):
-        if i != 6:
-            output[i] = x[i]
-        output[6] = V_a
-    # Quick fix to pass pytest:
-    output[6] = x[6]
-    return output
-
-
-def build_nonlin_sys(prop: AircraftProperties, wind: WindModel,
-                     prop_updater: PropertyUpdater = None) -> NonlinearIOSystem:
+def build_nonlin_sys(prop: AircraftProperties, wind: WindModel, outputs: Sequence,
+                     prop_updater: PropertyUpdater = None,
+                     out_func: Callable[[float, np.ndarray, np.ndarray, dict], np.ndarray] = out_f) \
+                     -> NonlinearIOSystem:
     """
     Construct a nonlinear IO system from passed input
 
@@ -101,15 +83,14 @@ def build_nonlin_sys(prop: AircraftProperties, wind: WindModel,
     :param prop_updater: Instance that returns a dictionary that is passed to the
         update_params method of AircraftProperty, which evolves according to the
         a discrete schedule as the simulation evolves.
+    :param output_function: Function that defined outputs of nonlinear systems. Outputs
+        are system states by default.
     """
     inputs = ('elevator_deflection', 'aileron_deflection', 'rudder_deflection', 'throttle')
     states = ('x', 'y', 'z', 'roll', 'pitch', 'yaw', 'vx',
               'vy', 'vz', 'ang_rate_x', 'ang_rate_y', 'ang_rate_z')
-    outputs = ('x', 'y', 'z', 'roll', 'pitch', 'yaw', 'vx',
-               'vy', 'vz', 'ang_rate_x', 'ang_rate_y', 'ang_rate_z')
-    # 'airspeed', 'icing_left_wing', 'icing_right_wing')
     system = NonlinearIOSystem(
-        dynamics_kinetmatics_update, inputs=inputs, states=states, outfcn=quick_fix_update_func,
+        dynamics_kinetmatics_update, inputs=inputs, states=states, outfcn=out_func,
         params={'prop': prop, 'wind': wind, 'prop_updater': prop_updater}, outputs=outputs,
         name='dynamics_kinematics'
     )
