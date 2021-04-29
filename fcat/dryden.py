@@ -3,6 +3,7 @@ from fcat import WindModel
 import numpy as np
 from scipy.signal import lti, lsim
 import math
+from scipy.interpolate import interp1d
 from enum import IntEnum
 
 __all__ = ('DrydenGust',)
@@ -18,16 +19,16 @@ class Filter:
         self.filter = lti(num, den)
         self.x = None
 
-    def simulate(self, u: float, t: float) -> float:
+    def simulate(self, u: np.ndarray, t: np.ndarray) -> np.ndarray:
         """
         Simulate filter
         :param u: filter input
-        :param t: time steps for which to simulate
+        :param t: timeseries
         :return: filter output
         """
-        _, y, x = lsim(self.filter, U=[u, 0], T=[0, t], X0=self.x)
+        _, y, x = lsim(self.filter, U=u, T=t, X0=self.x)
         self.x = x[-1]
-        return y[-1]
+        return y
 
     def reset(self):
         """
@@ -44,8 +45,9 @@ class TurbulenceIntensity(IntEnum):
 
 
 class DrydenGust(WindModel):
-    def __init__(self, wingspan: float, altitude: float = 100, airspeed: float = 25.0,
-                 intensity: TurbulenceIntensity = TurbulenceIntensity.MODERATE):
+    def __init__(self, wingspan: float, timeseries: np.ndarray, altitude: float = 100,
+                 airspeed: float = 20.0,
+                 intensity: TurbulenceIntensity = TurbulenceIntensity.MODERATE, seed: int = None):
         """
         Python realization of the continuous Dryden Turbulence Model (MIL-F-8785C).
 
@@ -124,8 +126,10 @@ class DrydenGust(WindModel):
                           [T_r * T_v2 ** 2, T_v2 ** 2 + 2 * T_r * T_v2, T_r + 2 * T_v2, 1])}
 
         self.np_random = None
-        self.seed()
-        self.time = 0.0
+        self.seed(seed)
+        self.time = timeseries
+        self.wind_data = self._simulate(timeseries)
+        self.interp_wind_data = self._interpolate_wind_data()
 
     def seed(self, seed: int = None) -> None:
         """
@@ -135,33 +139,44 @@ class DrydenGust(WindModel):
         """
         self.np_random = np.random.RandomState(seed)
 
-    def _generate_noise(self, dt: float) -> np.ndarray:
+    def _interpolate_wind_data(self) -> np.ndarray:
+        interpdata_list = []
+        for i in range(6):
+            interpdata_list.append(interp1d(self.time, self.wind_data[i, :]))
+        return interpdata_list
+
+    def _generate_noise(self, t: np.ndarray) -> np.ndarray:
         """
         Return a numpy array of normal distributed random variables of length 4
         """
-        return np.sqrt(np.pi / dt) * self.np_random.standard_normal(size=4)
+        dt = t[1]-t[0]
+        return np.sqrt(np.pi / dt) * self.np_random.standard_normal(size=(4, len(t)))
 
     def reset(self) -> None:
         for f in self.filters.values():
             f.reset()
 
-    def get(self, t: float) -> np.ndarray:
+    def _simulate(self, t: np.ndarray) -> np.ndarray:
         """
         Simulate turbulence by passing white white noise through the filters
         Return the wind vector of length 6. The first three are translational
         and the last three are rotational
         """
-        dt = t - self.time
-        assert dt > 0.0
 
-        noise = self._generate_noise(dt)
-        velocity = np.array([self.filters["H_u"].simulate(noise[0], dt),
-                             self.filters["H_v"].simulate(noise[1], dt),
-                             self.filters["H_w"].simulate(noise[2], dt),
+        noise = self._generate_noise(t)
+        velocity = np.array([self.filters["H_u"].simulate(noise[0, :], t),
+                             self.filters["H_v"].simulate(noise[1, :], t),
+                             self.filters["H_w"].simulate(noise[2, :], t),
 
                              # Rotational part
-                             self.filters["H_p"].simulate(noise[3], dt),
-                             self.filters["H_q"].simulate(noise[1], dt),
-                             self.filters["H_r"].simulate(noise[2], dt)])
-        self.time = t
+                             self.filters["H_p"].simulate(noise[3, :], t),
+                             self.filters["H_q"].simulate(noise[1, :], t),
+                             self.filters["H_r"].simulate(noise[2, :], t)])
+        assert velocity.shape == (6, len(t))
         return velocity
+
+    def get(self, t: float) -> np.ndarray:
+        wind_array = np.zeros((6,))
+        for i in range(len(wind_array)):
+            wind_array[i] = self.interp_wind_data[i](t)
+        return wind_array
