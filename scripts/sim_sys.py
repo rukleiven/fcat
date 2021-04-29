@@ -4,7 +4,7 @@ from control.iosys import LinearIOSystem, summing_junction, InterconnectedSystem
 import numpy as np
 from fcat import (
     aircraft_property_from_dct, actuator_from_dct, ControlInput, State,
-    build_nonlin_sys, no_wind, PropUpdate, PropertyUpdater
+    build_nonlin_sys, PropUpdate, PropertyUpdater, DrydenGust
 )
 from fcat.utilities import add_controllers
 from fcat.inner_loop_controller import (pitch_hinf_controller, roll_hinf_controller,
@@ -80,20 +80,22 @@ def sim_aircraft():
 
     updates = {
         'icing_right_wing': [PropUpdate(time=0.0, value=0.0),
-                             PropUpdate(time=5.0, value=0.5),
-                             PropUpdate(time=18.0, value=0.0)],
+                             PropUpdate(time=5.0, value=0.0),
+                             PropUpdate(time=25.0, value=0.0)],
         'icing_left_wing': [PropUpdate(time=0.0, value=0.0),
-                            PropUpdate(time=5.0, value=0.5),
+                            PropUpdate(time=5.0, value=0.0),
                             PropUpdate(time=25.0, value=0.0)]
     }
 
     updater = PropertyUpdater(updates)
-    sys = build_nonlin_sys(aircraft, no_wind(), updater)
+    sim_time = 40
+    t = np.linspace(0, sim_time, sim_time*5, endpoint=True)
+    wind = DrydenGust(2.1, t, intensity=0)
+    sys = build_nonlin_sys(aircraft, wind, updater)
     actuator = actuator_from_dct(data['actuator'])
 
     closed_loop_system = add_controllers(
         actuator, sys, longitudinal_controller, lateral_controller, airspeed_controller)
-
     init_vec = np.zeros((33,))
     init_vec[0:4] = ctrl.control_input
     init_vec[4:16] = state.state
@@ -102,11 +104,9 @@ def sim_aircraft():
                        7.69914385e-03, 5.62092015e-03, 5.89381582e-04, 4.89020637e-02,
                        2.36717523e-02, -2.71712656e-04, 2.17217400e-02, 0]
 
-    sim_time = 40
-    t = np.linspace(0, sim_time, sim_time*5, endpoint=True)
     constant_input = np.array([21.401240221720634, 0.1369212836023969, -0.0])
     u_init = np.array([constant_input, ]*(100)).transpose()
-    constant_input = np.array([21.401240221720634, 0.1369212836023969, -0.0])
+    constant_input = np.array([21.401240221720634, 0.3, -0.2])
     u_step = np.array([constant_input, ]*(100)).transpose()
     u = np.concatenate([u_init, u_step], axis=1)
 
