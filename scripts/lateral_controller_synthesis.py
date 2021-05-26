@@ -10,4 +10,10 @@ def latcs(infile: str, outfile: str):
     """
     Run controller synthesis
     """
-    lateral_controller(outfile, infile)
+    wcl_filename = \
+        "./examples/skywalkerX8_analysis/SkywalkerX8_state_space_models/skywalkerx8_linmod.json"
+    wcu_filename = \
+        "./examples/skywalkerX8_analysis/SkywalkerX8_state_space_models/"
+    wcu_filename += "skywalkerx8_linmod_icing10.json"
+
+    lateral_controller(infile, wcl_filename, wcu_filename, outfile)

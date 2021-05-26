@@ -63,7 +63,6 @@ def pitch_gain_scheduled_controller(params={}) -> NonlinearIOSystem:
     controllers = params['controllers']
     # Find number of controller states:
     A = np.matrix(controllers.get(list(controllers.keys())[0]).get('A'))
-    print(A)
     nstates = A.shape[0]
     states = []
     for i in range(nstates):

@@ -188,14 +188,14 @@ class AsymetricIcedSkywalkerX8Properties(AircraftProperties):
         super().__init__(control_input)
 
         # Distance vectors from CoG to right wing center of pressure
-        self.lift_force_center_of_pressure_rw = np.array([0.0, 0.4, 0.0])  # m
-        self.drag_force_center_of_pressure_rw = np.array([0.0, 0.25, 0.0])  # m
-        self.side_force_center_of_pressure_rw = np.array([0.0, 0.2, 0.0])  # m
+        self.lfpoa_rw = np.array([0.0, 0.4, 0.0])  # lift force point of attack right wing
+        self.dfpoa_rw = np.array([0.0, 0.25, 0.0])  # m
+        self.sfpoa_rw = np.array([0.0, 0.2, 0.0])  # m
 
         # Distance vectors from CoG to right wing center of pressure
-        self.lift_force_center_of_pressure_lw = np.array([0.0, -0.4, 0.0])  # m
-        self.drag_force_center_of_pressure_lw = np.array([0.0, -0.25, 0.0])  # m
-        self.side_force_center_of_pressure_lw = np.array([0.0, -0.2, 0.0])  # m
+        self.lfpoa_lw = np.array([0.0, -0.4, 0.0])  # m
+        self.dfpoa_lw = np.array([0.0, -0.25, 0.0])  # m
+        self.sfpoa_lw = np.array([0.0, -0.2, 0.0])  # m
 
     @property
     def control_input(self):
@@ -246,45 +246,43 @@ class AsymetricIcedSkywalkerX8Properties(AircraftProperties):
             {'icing': params.get('icing_right_wing', self.right_wing.icing)})
 
     def asymetric_moment_contribution(self, state: State, wind: np.ndarray) -> np.ndarray:
-        force_vec_right_wing_wind_frame = (1/2)*np.array([-self.right_wing.drag_coeff(state, wind),
-                                                          self.right_wing.side_force_coeff(
-                                                              state, wind),
-                                                          -self.right_wing.lift_coeff(state, wind)])
+        f_rw_wind = (1/2)*np.array([-self.right_wing.drag_coeff(state, wind),
+                                    self.right_wing.side_force_coeff(state, wind),
+                                    -self.right_wing.lift_coeff(state, wind)])
 
-        force_vec_left_wing_wind_frame = (1/2)*np.array([-self.left_wing.drag_coeff(state, wind),
-                                                         self.left_wing.side_force_coeff(
-                                                             state, wind),
-                                                         -self.left_wing.lift_coeff(state, wind)])
+        f_lw_wind = (1/2)*np.array([-self.left_wing.drag_coeff(state, wind),
+                                    self.left_wing.side_force_coeff(state, wind),
+                                    -self.left_wing.lift_coeff(state, wind)])
 
-        drag_vec_right_wing_body_frame = wind2body(
-            [force_vec_right_wing_wind_frame[0], 0, 0], state, wind)
-        drag_vec_left_wing_body_frame = wind2body(
-            [force_vec_left_wing_wind_frame[0], 0, 0], state, wind)
+        drag_rw_body = wind2body(
+            [f_rw_wind[0], 0, 0], state, wind)
+        drag_lw_body = wind2body(
+            [f_lw_wind[0], 0, 0], state, wind)
 
-        side_force_vec_right_wing_body_frame = wind2body(
-            [0, force_vec_right_wing_wind_frame[1], 0], state, wind)
-        side_force_vec_left_wing_body_frame = wind2body(
-            [0, force_vec_left_wing_wind_frame[1], 0], state, wind)
+        side_rw_body = wind2body(
+            [0, f_rw_wind[1], 0], state, wind)
+        side_lw_body = wind2body(
+            [0, f_lw_wind[1], 0], state, wind)
 
-        lift_force_vec_right_wing_body_frame = wind2body(
-            [0, 0, force_vec_right_wing_wind_frame[2]], state, wind)
-        lift_force_vec_left_wing_body_frame = wind2body(
-            [0, 0, force_vec_left_wing_wind_frame[2]], state, wind)
+        lift_rw_body = wind2body(
+            [0, 0, f_rw_wind[2]], state, wind)
+        lift_lw_body = wind2body(
+            [0, 0, f_lw_wind[2]], state, wind)
 
         drag_asym_moment_left_wing = np.cross(
-            self.drag_force_center_of_pressure_lw, drag_vec_left_wing_body_frame)
+            self.dfpoa_lw, drag_lw_body)
         side_force_asym_moment_left_wing = np.cross(
-            self.side_force_center_of_pressure_lw, side_force_vec_left_wing_body_frame)
+            self.sfpoa_lw, side_lw_body)
         lift_asym_moment_left_wing = np.cross(
-            self.lift_force_center_of_pressure_lw, lift_force_vec_left_wing_body_frame)
+            self.lfpoa_lw, lift_lw_body)
         asym_moment_left_wing = drag_asym_moment_left_wing + side_force_asym_moment_left_wing\
             + lift_asym_moment_left_wing
         drag_asym_moment_right_wing = np.cross(
-            self.drag_force_center_of_pressure_rw, drag_vec_right_wing_body_frame)
+            self.dfpoa_rw, drag_rw_body)
         side_force_asym_moment_right_wing = np.cross(
-            self.drag_force_center_of_pressure_rw, side_force_vec_right_wing_body_frame)
+            self.dfpoa_rw, side_rw_body)
         lift_asym_moment_right_wing = np.cross(
-            self.lift_force_center_of_pressure_rw, lift_force_vec_right_wing_body_frame)
+            self.lfpoa_rw, lift_rw_body)
         asym_moment_right_wing = drag_asym_moment_right_wing + side_force_asym_moment_right_wing\
             + lift_asym_moment_right_wing
         asym_moment = asym_moment_left_wing + asym_moment_right_wing

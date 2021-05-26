@@ -22,9 +22,11 @@ def plot_aero_coeff(prop: Sequence[AircraftProperties], states: Sequence[State],
     x = [calc_angle_of_sideslip(s, wind.wind)*180/np.pi for s in states]
     _ = calc_angle_of_attack(states[0], wind.wind)
     xlabel = "AOA"
-    # x_min = np.min(x)
-    # x_max = np.max(x)
-    xticks = np.arange(-5, 20, 5)
+    x_min = np.min(x)
+    x_max = np.max(x)
+    print(x_min)
+    print(x_max)
+    xticks = np.arange(-10, 20, 5)
     for p in prop:
         drag = [p.drag_coeff(s, wind.wind) for s in states]
         side_force = [p.side_force_coeff(s, wind.wind) for s in states]

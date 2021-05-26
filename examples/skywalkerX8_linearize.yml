@@ -3,7 +3,7 @@ actuator:
   motor_time_constant: 0.2
   type: flying_wings
 aircraft:
-  icing: 0.0
+  icing: 1
   type: skywalkerX8
 init_control:
   aileron_deflection: 0.0005905536685995636

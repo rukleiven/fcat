@@ -18,9 +18,7 @@ def roll_gs_update(t, x, u, params={}):
     controller_index = icing_levels.index(min(icing_levels, key=lambda x: abs(x-icing_level)))
     A = np.matrix(controllers[dict_keys[controller_index]]['A'])
     B = np.matrix(controllers[dict_keys[controller_index]]['B'])
-
     x_dot = A.dot(x).transpose() + np.multiply(B, roll_error)
-
     return x_dot
 
 
@@ -64,7 +62,6 @@ def roll_gain_scheduled_controller(params={}) -> NonlinearIOSystem:
     controllers = params['controllers']
     # Find number of controller states:
     A = np.matrix(controllers.get(list(controllers.keys())[0]).get('A'))
-    print(A)
     nstates = A.shape[0]
     states = []
     for i in range(nstates):

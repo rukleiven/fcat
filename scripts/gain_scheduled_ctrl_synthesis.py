@@ -19,7 +19,7 @@ def update_icing_level(infile: str, icing_level: float):
         dump(data, f)
 
 
-def linearize_system(infile: str):  # -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+def linearize_system(infile: str, index: int) -> str:
     with open(infile) as f:
         data = load(f)
     aircraft = aircraft_property_from_dct(data['aircraft'])
@@ -37,11 +37,40 @@ def linearize_system(infile: str):  # -> tuple[np.ndarray, np.ndarray, np.ndarra
     states_lin = np.concatenate((ueq, xeq))
     linearized_sys = aircraft_with_actuator.linearize(states_lin, ueq)
     A, B, C, D = ssdata(linearized_sys)
-    return np.array(A), np.array(B), np.array(C), np.array(D)
+    linsys = {
+        'A': np.array(A).tolist(),
+        'B': np.array(B).tolist(),
+        'C': np.array(C).tolist(),
+        'D': np.array(D).tolist(),
+        'xeq': xeq.tolist(),
+        'ueq': ueq.tolist()
+    }
+
+    f_name = "examples/skywalkerX8_analysis/ss_mod_gs/"
+    f_name += "skywalkerX8_linmod_icing" + str(index) + ".json"
+    with open(f_name, 'w') as outfile:
+        json.dump(linsys, outfile, indent=2, sort_keys=True)
+    print(f"Linear model written to {f_name}")
+    return f_name
+
+
+def upper_lower_icing_levels(icing_levels: Sequence) -> list:
+    lower_upper = []
+    for i in range(len(icing_levels)):
+        if i == 0:
+            lower = 0
+        else:
+            lower = round(icing_levels[i] - (icing_levels[i]-icing_levels[i-1])/2, 2)
+        if i == len(icing_levels) - 1:
+            upper = 1
+        else:
+            upper = round(icing_levels[i] + (icing_levels[i+1] - icing_levels[i])/2, 2)
+        lower_upper.append((lower, upper))
+    return lower_upper
 
 
 @click.command()
-@click.option('--infile', help="JSON file containing linearized state space model of aircraft")
+@click.option('--infile', help="yml file containing aircraft configurations")
 @click.option('--longs_outfile', type=str, default=None, help="JSON file where the "
               "linearized state space model will be written")
 @click.option('--latgs_outfile', type=str, default=None, help="JSON file where the "
@@ -56,17 +85,34 @@ def gscs(infile: str, longs_outfile: str, latgs_outfile: str, icing_levels: Sequ
     lateral_controllers = {}
     icing_levels = list(set(icing_levels))
     icing_levels.sort()
+    ss_models = []
+    for i in range(len(icing_levels)):
+        update_icing_level(infile, icing_levels[i])
+        f_name = linearize_system(infile, i)
+        ss_models.append(f_name)
 
-    for icing_level in icing_levels:
-        update_icing_level(infile, icing_level)
-        A, B, C, D = linearize_system(infile)
+    lower_upper_icing = upper_lower_icing_levels(icing_levels)
+    lower_upper_fnames = []
+    name_indx = len(icing_levels)
+    for lower_upper in lower_upper_icing:
+        update_icing_level(infile, lower_upper[0])
+        f_name_lower = linearize_system(infile, name_indx)
+        name_indx += 1
+        update_icing_level(infile, lower_upper[1])
+        f_name_upper = linearize_system(infile, name_indx)
+        name_indx += 1
+        lower_upper_fnames.append((f_name_lower, f_name_upper))
 
+    for i in range(len(ss_models)):
+        assert len(ss_models) == len(lower_upper_fnames)
+        l_u_fname_tuple = lower_upper_fnames[i]
+        lower_fname = l_u_fname_tuple[0]
+        upper_fname = l_u_fname_tuple[1]
         # Longitudinal controller synthesis
-
-        A_lon, B_lon, C_lon, D_lon = longitudinal_controller(None, A, B, C, D)
+        A_lon, B_lon, C_lon, D_lon = longitudinal_controller(ss_models[i], lower_fname, upper_fname)
 
         controller = {
-            'icing_level': icing_level,
+            'icing_level': icing_levels[i],
             'A': A_lon.tolist(),
             'B': B_lon.tolist(),
             'C': C_lon.tolist(),
@@ -77,9 +123,9 @@ def gscs(infile: str, longs_outfile: str, latgs_outfile: str, icing_levels: Sequ
                                  str(len(longitudinal_controllers.keys()))] = controller
 
         # Lateral controller synthesis
-        A_lat, B_lat, C_lat, D_lat = lateral_controller(None, A, B, C, D)
+        A_lat, B_lat, C_lat, D_lat = lateral_controller(ss_models[i], lower_fname, upper_fname)
         controller = {
-            'icing_level': icing_level,
+            'icing_level': icing_levels[i],
             'A': A_lat.tolist(),
             'B': B_lat.tolist(),
             'C': C_lat.tolist(),

@@ -11,7 +11,7 @@ def roll_hinf_update(t, x, u, params={}):
     B = params.get('B')
 
     roll_error = u[0]
-    x_dot = A.dot(x.reshape(8, 1)) + np.multiply(B, roll_error)
+    x_dot = A.dot(x.reshape(len(x), 1)) + np.multiply(B, roll_error)
     return x_dot
 
 

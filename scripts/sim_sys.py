@@ -3,7 +3,7 @@ from control import input_output_response
 import numpy as np
 from fcat import (
     aircraft_property_from_dct, actuator_from_dct, ControlInput, State,
-    build_nonlin_sys, PropUpdate, PropertyUpdater, DrydenGust, ConstantWind
+    build_nonlin_sys, PropUpdate, PropertyUpdater, DrydenGust, ConstantWind, no_wind
 )
 from fcat.utilities import add_controllers, create_aircraft_output_fonction
 from fcat.inner_loop_controller import (pitch_hinf_controller, roll_hinf_controller,
@@ -25,7 +25,21 @@ def compare_simulations(filename1: str, filename2: str):
     yout1 = data1.get('y_out')
 
     yout2 = data2.get('y_out')
-    fig = plt.figure()
+    fig = plt.figure(figsize=(7, 3))
+    # xout2 = data2.get('x_out')
+    # xout1 = data1.get('x_out')
+
+    # ax = fig.add_subplot(1, 2, 1)
+    # ax.plot(t1, xout1[1])
+    # ax.plot(t1, xout2[1])
+    # ax.set_xlabel("Time(s)")
+    # ax.set_ylabel("Aileron deflection (rad)")
+
+    # ax = fig.add_subplot(1, 2, 2)
+    # ax.plot(t1, yout1[3])
+    # ax.plot(t1, yout2[3])
+    # ax.set_xlabel("Time(s)")
+    # ax.set_ylabel("Roll angle (rad)")
 
     for i in range(len(yout1)):
         ax = fig.add_subplot(3, 4, i+1)
@@ -33,7 +47,11 @@ def compare_simulations(filename1: str, filename2: str):
         ax.plot(t1, yout2[i])
         ax.set_xlabel("Time")
         ax.set_ylabel(f"State {i}")
+        if i == 0:
+            labels = ("gs", "robust")
+            plt.legend(labels)
     plt.show()
+
     return fig
 
 
@@ -81,17 +99,18 @@ def sim_aircraft(controller_type: str = "gs"):
         "kaw": 2,
         "throttle_trim": 0.58
     }
-    lateral_controllers_filename = './examples/skywalkerX8_analysis/lateral_controllergs.json'
+    lateral_controllers_filename = './examples/lateral_controllergs.json'
     with open(lateral_controllers_filename, 'r') as f:
         lateral_controllers = json.load(f)
     longitudinal_controllers_filename = \
-        './examples/skywalkerX8_analysis/longitudinal_controllergs.json'
+        './examples/longitudinal_controllergs.json'
     with open(longitudinal_controllers_filename, 'r') as f:
         longitudinal_controllers = json.load(f)
     longitudinalgs_controller_params = {'controllers': longitudinal_controllers}
     lateralgs_controller_params = {'controllers': lateral_controllers}
     longitudinal_controller = pitch_gain_scheduled_controller(longitudinalgs_controller_params)
     lateral_controller = roll_gain_scheduled_controller(lateralgs_controller_params)
+
     out_filename = None
     if(controller_type == "robust"):
         longitudinal_controller = pitch_hinf_controller(longitudinal_controller_params)
@@ -100,22 +119,21 @@ def sim_aircraft(controller_type: str = "gs"):
     elif (controller_type == "gs"):
         out_filename = "./examples/sim_res_gs.json"
     airspeed_controller = airspeed_pi_controller(airspeed_controller_params)
-    config_filename = "examples/skywalkerx8_asymetric_linearize.yml"
+    config_filename = "examples/skywalkerx8_linearize.yml"
     with open(config_filename, 'r') as infile:
         data = load(infile)
-
     aircraft = aircraft_property_from_dct(data['aircraft'])
     ctrl = ControlInput.from_dict(data['init_control'])
     state = State.from_dict(data['init_state'])
 
     updates = {
         'icing_left_wing': [PropUpdate(time=0.0, value=0.0),
-                            PropUpdate(time=14.0, value=0.0),
-                            PropUpdate(time=26.0, value=0.0),
-                            PropUpdate(time=28.0, value=0.0)],
+                            PropUpdate(time=15.0, value=0.0)],
         'icing_right_wing': [PropUpdate(time=0.0, value=0.0),
-                             PropUpdate(time=14.0, value=0.0),
-                             PropUpdate(time=26.0, value=0.0)]
+                             PropUpdate(time=5.0, value=0.0)],
+        'icing': [PropUpdate(time=0.0, value=1.0),
+                  PropUpdate(time=5.0, value=1.0),
+                  PropUpdate(time=6.0, value=0.0)]
     }
 
     updater = PropertyUpdater(updates)
@@ -124,15 +142,16 @@ def sim_aircraft(controller_type: str = "gs"):
                                "vx", "vy", "vz", "ang_rate_x", "ang_rate_y",
                                "ang_rate_z", "airspeed", "icing"]
                    }
-    sim_time = 30
+    sim_time = 15
     t = np.linspace(0, sim_time, sim_time*5, endpoint=True)
     out_function = create_aircraft_output_fonction(config_dict)
 
-    wind = ConstantWind(np.array([5, 5, 0, 0.0, 0.0, -0.0]))
-    wind = DrydenGust(2.1, t, intensity=0)
+    _ = ConstantWind(np.array([5, 5, 0, 0.0, 0.0, -0.0]))
+    _ = DrydenGust(2.1, t, intensity=0)
+    wind = no_wind()
     sys = build_nonlin_sys(
         aircraft, wind,
-        outputs=config_dict["outputs"], prop_updater=None, output_function=out_function)
+        outputs=config_dict["outputs"], prop_updater=updater, out_func=out_function)
     actuator = actuator_from_dct(data['actuator'])
 
     closed_loop_system = add_controllers(
@@ -150,10 +169,10 @@ def sim_aircraft(controller_type: str = "gs"):
     #                    7.69914385e-03, 5.62092015e-03, 5.89381582e-04, 4.89020637e-02,
     #                    2.36717523e-02, -2.71712656e-04, 2.17217400e-02, 0]
 
-    constant_input = np.array([21.2, 0.04, -0.00033310605950459315])
-    u_init = np.array([constant_input, ]*(50)).transpose()
-    constant_input = np.array([21.2, 0.30, -0.2])
-    u_step = np.array([constant_input, ]*(100)).transpose()
+    constant_input = np.array([20, 0.04, -0.00033310605950459315])
+    u_init = np.array([constant_input, ]*(25)).transpose()
+    constant_input = np.array([20, 0.3, -0.1])
+    u_step = np.array([constant_input, ]*(50)).transpose()
     u = np.concatenate([u_init, u_step], axis=1)
 
     T, yout_non_lin, xout_non_lin = input_output_response(
