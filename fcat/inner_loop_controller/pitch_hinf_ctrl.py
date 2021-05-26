@@ -36,8 +36,8 @@ def pitch_hinf_controller(params={}) -> NonlinearIOSystem:
     :param params: Dictionary containing controller parameters A,B,C,D,elevator_deflection_max,
                    elevator_deflection_min
         - A,B,C,D: state space matrices of controller
-        - aileron_deflection_max: maximum elevator deflection (rad)
-        - aileron_deflection_min: minimum elevator deflection (rad)
+        - elevator_deflection_max: maximum elevator deflection (rad)
+        - elevator_deflection_min: minimum elevator deflection (rad)
     """
     name = 'pitch_hinf_controller'
     inputs = 'pitch_error'

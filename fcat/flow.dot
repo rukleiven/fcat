@@ -1,0 +1,19 @@
+digraph G {
+    node [style=filled]
+    "Aricraft properties" -> "Aircraft dynamics"
+    "Wind model" -> "Aircraft dynamics"
+    Controller -> Solver
+    Actuator -> Solver
+    "Aircraft dynamics" -> Solver
+    Solver -> "Post processing" [label=" System response"]
+    {Solver "Post processing"} -> Visualization
+
+    Solver [shape=box,style="filled, rounded, solid",fillcolor="#a2d2ffff", width="1.5" height="0.7" fixedsize="true"];
+    Controller [style="filled, solid",fillcolor="#F08080"];
+    Actuator [style="filled, solid",fillcolor="#F08080"];
+    "Aricraft properties" [style="filled, solid",fillcolor="#F08080"];
+    "Wind model" [style="filled, solid",fillcolor="#F08080"];
+    "Aircraft dynamics" [style="filled, solid",fillcolor="#a2d2ffff"];
+    Visualization [style="filled, solid",fillcolor="#F0E68C"];
+    "Post processing" [style="filled, solid",fillcolor="#F0E68C"];
+}

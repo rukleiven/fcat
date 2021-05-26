@@ -55,6 +55,7 @@ class PropertyUpdater:
 
     e.g. we give a list with the points where the fracture value change
     """
+
     def __init__(self, updates: Dict[str, Sequence[PropUpdate]]):
         self.updates = updates
 

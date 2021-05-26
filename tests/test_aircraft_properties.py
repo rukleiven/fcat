@@ -165,7 +165,7 @@ def pitch_moment_coeff_test_cases():
 
 
 @pytest.mark.parametrize('state, wind, icing, control_input, expect', pitch_moment_coeff_test_cases())
-def ptich_moment_coeff(state, wind, icing, control_input, expect):
+def pitch_moment_coeff(state, wind, icing, control_input, expect):
     prop = IcedSkywalkerX8Properties(control_input, icing=icing)
     assert prop.pitch_moment_coeff(state, wind) == pytest.approx(expect)
 

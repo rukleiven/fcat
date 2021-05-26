@@ -52,6 +52,13 @@ C_L_q_data = [  # Data points in alpha (degree), icing, C_Lq(alpha, icing) forma
     [2, 1, -3.31],
     [8, 1, -3.51]
 ]
+
+# C_L_q_data = [  # Data points in alpha (degree), icing, C_Lq(alpha, icing) format:
+#     [2, 0, 4.63],
+#     [8, 0, 4.63],
+#     [2, 1, -3.41],
+#     [8, 1, -3.41]
+# ]
 # Drag coefficients (C_D(alpha), C_D_q
 C_D_a_data = [  # Data points in alpha (degree), icing, C_D(alpha, icing) format:
     # Clean data
@@ -153,3 +160,10 @@ C_m_q_data = [  # Data points in alpha (degree), icing, C_mq(alpha, icing) forma
     [2, 1, -2.01],
     [8, 1, -2.17]
 ]
+
+# C_m_q_data = [  # Data points in alpha (degree), icing, C_mq(alpha, icing) format:
+#     [2, 0, -1.99],
+#     [8, 0, -1.99],
+#     [2, 1, -2.09],
+#     [8, 1, -2.09]
+# ]
