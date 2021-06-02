@@ -55,7 +55,7 @@ def dynamics_kinetmatics_update(t: float, x: np.ndarray, u: np.ndarray, params: 
     omega_dot = \
         prop.inv_inertia_matrix().dot(moment_vec - np.cross(omega, prop.inertia_matrix().dot(omega)))
     update[StateVecIndices.ANG_RATE_X:StateVecIndices.ANG_RATE_Z+1] = omega_dot
-
+    print(t)
     # Kinematics
     # Position updates
     update[StateVecIndices.X:StateVecIndices.Z +

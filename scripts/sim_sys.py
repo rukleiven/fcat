@@ -119,7 +119,7 @@ def sim_aircraft(controller_type: str = "gs"):
     elif (controller_type == "gs"):
         out_filename = "./examples/sim_res_gs.json"
     airspeed_controller = airspeed_pi_controller(airspeed_controller_params)
-    config_filename = "examples/skywalkerx8_linearize.yml"
+    config_filename = "examples/skywalkerx8_asymmetric_linearize.yml"
     with open(config_filename, 'r') as infile:
         data = load(infile)
     aircraft = aircraft_property_from_dct(data['aircraft'])
@@ -127,10 +127,10 @@ def sim_aircraft(controller_type: str = "gs"):
     state = State.from_dict(data['init_state'])
 
     updates = {
-        'icing_left_wing': [PropUpdate(time=0.0, value=0.0),
-                            PropUpdate(time=15.0, value=0.0)],
-        'icing_right_wing': [PropUpdate(time=0.0, value=0.0),
-                             PropUpdate(time=5.0, value=0.0)],
+        'icing_left_wing': [PropUpdate(time=0.0, value=1.0),
+                            PropUpdate(time=16.0, value=0.0)],
+        'icing_right_wing': [PropUpdate(time=0.0, value=1.0),
+                             PropUpdate(time=5.0, value=0.5)],
         'icing': [PropUpdate(time=0.0, value=1.0),
                   PropUpdate(time=5.0, value=1.0),
                   PropUpdate(time=6.0, value=0.0)]
@@ -171,7 +171,7 @@ def sim_aircraft(controller_type: str = "gs"):
 
     constant_input = np.array([20, 0.04, -0.00033310605950459315])
     u_init = np.array([constant_input, ]*(25)).transpose()
-    constant_input = np.array([20, 0.3, -0.1])
+    constant_input = np.array([20, 0.04, -0.00033310605950459315])
     u_step = np.array([constant_input, ]*(50)).transpose()
     u = np.concatenate([u_init, u_step], axis=1)
 
@@ -193,5 +193,5 @@ def sim_aircraft(controller_type: str = "gs"):
     print(f"Results written to {out_filename}")
 
 
-sim_aircraft("gs")
+sim_aircraft("robust")
 # compare_simulations("examples/sim_res_gs.json", "examples/sim_res_robust.json")
