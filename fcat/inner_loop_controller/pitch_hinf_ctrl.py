@@ -1,6 +1,8 @@
 import numpy as np
 from fcat.utilities import saturate
 from control import NonlinearIOSystem
+from fcat.constants import (PITCH_ERROR, PITCH_HINF_CONTOLLER, ELEVATOR_DEFLECTION_COMMAND)
+from fcat.inner_loop_controller import SaturatedStateSpaceController
 
 __all__ = ('pitch_hinf_controller',)
 
@@ -11,7 +13,7 @@ def pitch_hinf_update(t, x, u, params={}):
     B = params.get('B')
 
     pitch_error = u[0]
-    x_dot = A.dot(x).transpose() + np.multiply(B, pitch_error)
+    x_dot = A.dot(x.reshape(len(x), 1)) + np.multiply(B, pitch_error)
     return x_dot
 
 
@@ -19,9 +21,8 @@ def pitch_hinf_output(t, x, u, params={}):
     # Get state-space matricies
     C = params.get('C')
     D = params.get('D')
-
-    elevator_deflection_min = params.get('elevator_deflection_min', -0.4)
-    elevator_deflection_max = params.get('elevator_deflection_max', 0.4)
+    elevator_deflection_min = params.get('lower', -0.4)
+    elevator_deflection_max = params.get('upper', 0.4)
     pitch_error = u[0]
 
     y = C.dot(x) + D.dot(pitch_error)
@@ -29,26 +30,30 @@ def pitch_hinf_output(t, x, u, params={}):
     return elevator_deflection_command
 
 
-def pitch_hinf_controller(params={}) -> NonlinearIOSystem:
+def pitch_hinf_controller(controller: SaturatedStateSpaceController) -> NonlinearIOSystem:
     """
     Returns the pitchhinf controller as a nonlinearIOsystem
 
-    :param params: Dictionary containing controller parameters A,B,C,D,elevator_deflection_max,
-                   elevator_deflection_min
-        - A,B,C,D: state space matrices of controller
-        - elevator_deflection_max: maximum elevator deflection (rad)
-        - elevator_deflection_min: minimum elevator deflection (rad)
+    :param controller: Instant of saturated controller
     """
-    name = 'pitch_hinf_controller'
-    inputs = 'pitch_error'
-    outputs = 'elevator_deflection_command'
+    name = PITCH_HINF_CONTOLLER
+    inputs = PITCH_ERROR
+    outputs = ELEVATOR_DEFLECTION_COMMAND
 
     # Find number of controller states:
-    A = params.get('A')
-    nstates = len(A)
+    A = controller.A
+    nstates = A.shape[0]
     states = []
     for i in range(nstates):
         states.append("longitudinal_controller["+str(i)+"]")
+
+    params = {'A': controller.A,
+              'B': controller.B,
+              'C': controller.C,
+              'D': controller.D,
+              'upper': controller.upper,
+              'lower': controller.lower
+              }
 
     pitch_hinf_controller = NonlinearIOSystem(updfcn=pitch_hinf_update, outfcn=pitch_hinf_output,
                                               inputs=inputs, outputs=outputs, params=params,

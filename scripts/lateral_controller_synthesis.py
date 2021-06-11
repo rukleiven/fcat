@@ -1,19 +1,33 @@
 import click
-from fcat.inner_loop_controller import lateral_controller
+from fcat.inner_loop_controller import lateral_controller, get_state_space_from_file
+import json
 
 
 @click.command()
 @click.option('--infile', help="JSON file containing linearized state space model of aircraft")
 @click.option('--outfile', default=None, help="JSON file where the "
                                               "linearized state space model will be written")
-def latcs(infile: str, outfile: str):
+def latcs(infile: str, outfile: str, lower_ss_fname: str, upper_ss_fname: str):
     """
-    Run controller synthesis
-    """
-    wcl_filename = \
-        "./examples/skywalkerX8_analysis/SkywalkerX8_state_space_models/skywalkerx8_linmod.json"
-    wcu_filename = \
-        "./examples/skywalkerX8_analysis/SkywalkerX8_state_space_models/"
-    wcu_filename += "skywalkerx8_linmod_icing10.json"
+    Run controller synthesis for skywalkerX8
 
-    lateral_controller(infile, wcl_filename, wcu_filename, outfile)
+    """
+    # TODO: Take in boundary filenames as additional arguments?
+    boundary_ss = (get_state_space_from_file(lower_ss_fname),
+                   get_state_space_from_file(upper_ss_fname))
+    nom_ss = get_state_space_from_file(infile)
+    K = lateral_controller(nom_ss, boundary_ss)
+
+    # Write controller to file:
+
+    if outfile is not None:
+        lat_controller = {
+            'A': (K.A).tolist(),
+            'B': (K.B).tolist(),
+            'C': (K.C).tolist(),
+            'D': (K.D).tolist()
+        }
+
+        with open(outfile, 'w') as outfile:
+            json.dump(lat_controller, outfile, indent=2, sort_keys=True)
+        print(f"Lateral controller written to {outfile}")

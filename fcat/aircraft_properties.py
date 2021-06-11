@@ -195,3 +195,19 @@ class AircraftProperties(ABC):
         :param params: Subclass specific parameters
         """
         pass
+
+    def is_known_output(self, output: str) -> bool:
+        """
+        Return True if aircraft property can be returned
+
+        :param output: output name
+        """
+        return False
+
+    def get_output(self, output: str) -> float:
+        """
+        Return outåut value
+
+        :param output: output name
+        """
+        return 0.0

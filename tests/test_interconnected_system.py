@@ -5,6 +5,7 @@ from control.iosys import input_output_response
 import numpy as np
 
 
+
 def test_interconnected_system():
     control_input = ControlInput()
     control_input.throttle = 0.5

@@ -3,11 +3,11 @@ import numpy as np
 from fcat import AircraftProperties, ControlInput, State
 from fcat.state_vector import StateVecIndices
 from fcat.utilities import (calc_airspeed, wind2body, inertial2body,
-                            body2euler, body2inertial)
+                            body2euler, body2inertial, create_aircraft_output_fonction)
 from control.iosys import NonlinearIOSystem
 from fcat.simulation_constants import AIR_DENSITY, GRAVITY_CONST
 from fcat import PropertyUpdater, WindModel
-from typing import Callable, Sequence
+from typing import Sequence
 __all__ = ('build_nonlin_sys',)
 
 
@@ -55,7 +55,6 @@ def dynamics_kinetmatics_update(t: float, x: np.ndarray, u: np.ndarray, params: 
     omega_dot = \
         prop.inv_inertia_matrix().dot(moment_vec - np.cross(omega, prop.inertia_matrix().dot(omega)))
     update[StateVecIndices.ANG_RATE_X:StateVecIndices.ANG_RATE_Z+1] = omega_dot
-    print(t)
     # Kinematics
     # Position updates
     update[StateVecIndices.X:StateVecIndices.Z +
@@ -67,14 +66,8 @@ def dynamics_kinetmatics_update(t: float, x: np.ndarray, u: np.ndarray, params: 
     return update
 
 
-def out_f(t: float, x: np.ndarray, u: np.ndarray, params: dict):
-    return x
-
-
 def build_nonlin_sys(prop: AircraftProperties, wind: WindModel, outputs: Sequence,
-                     prop_updater: PropertyUpdater = None,
-                     out_func: Callable[[float, np.ndarray, np.ndarray, dict], np.ndarray] = out_f) \
-                     -> NonlinearIOSystem:
+                     prop_updater: PropertyUpdater = None) -> NonlinearIOSystem:
     """
     Construct a nonlinear IO system from passed input
 
@@ -87,10 +80,10 @@ def build_nonlin_sys(prop: AircraftProperties, wind: WindModel, outputs: Sequenc
         are system states by default.
     """
     inputs = ('elevator_deflection', 'aileron_deflection', 'rudder_deflection', 'throttle')
-    states = ('x', 'y', 'z', 'roll', 'pitch', 'yaw', 'vx',
-              'vy', 'vz', 'ang_rate_x', 'ang_rate_y', 'ang_rate_z')
+
     system = NonlinearIOSystem(
-        dynamics_kinetmatics_update, inputs=inputs, states=states, outfcn=out_func,
+        dynamics_kinetmatics_update, inputs=inputs, states=State.names,
+        outfcn=create_aircraft_output_fonction(outputs),
         params={'prop': prop, 'wind': wind, 'prop_updater': prop_updater}, outputs=outputs,
         name='dynamics_kinematics'
     )

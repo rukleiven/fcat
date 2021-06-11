@@ -1,3 +1,4 @@
+from fcat.constants import AIRSPEED_ERROR
 import numpy as np
 from fcat.utilities import saturate
 from control import NonlinearIOSystem
@@ -16,7 +17,6 @@ def pi_update(t, x, u, params={}):
 
     # Compute anti-windup compensation (scale by ki to account for structure)
     u_aw = kaw/ki * (np.clip(throttle_nom, 0, 1) - throttle_nom) if ki != 0 else 0
-
     return airspeed_error + u_aw
 
 
@@ -30,7 +30,6 @@ def pi_output(t, x, u, params={}):
     airspeed_error = u[0]
     integrated_error = x[0]
     throttle = kp*airspeed_error + ki*integrated_error
-
     return saturate(throttle + throttle_trim, throttle_min, throttle_max)
 
 
@@ -48,7 +47,7 @@ def airspeed_pi_controller(params={}) -> NonlinearIOSystem:
         - throttle_trim: throttle trim-point
     """
     name = 'airspeed_controller'
-    inputs = 'airspeed_error'
+    inputs = AIRSPEED_ERROR
     outputs = 'throttle_command'
     states = 'integrated_error'
 

@@ -1,46 +1,56 @@
-from typing import Sequence
+from typing import Sequence, Tuple
 import json
+from fcat.constants import Direction
+from control.iosys import NonlinearIOSystem
+from fcat.inner_loop_controller import (hinfsyn, roll_gain_scheduled_controller,
+                                        pitch_hinf_controller,
+                                        roll_hinf_controller, pitch_gain_scheduled_controller,
+                                        StateSpaceMatrices, SaturatedStateSpaceController,
+                                        SaturatedStateSpaceMatricesGS, airspeed_pi_controller)
 
-from control.iosys import LinearIOSystem, input_output_response
-from fcat.inner_loop_controller import hinfsyn
 import numpy as np
-from control import (StateSpace, tf, augw, TransferFunction, ss2tf, bode_plot,
-                     feedback, evalfr, nyquist_plot, stability_margins, tf2ss)
+from control import (StateSpace, tf, augw, TransferFunction, ss2tf,
+                     evalfr, nyquist_plot, stability_margins)
 from scipy.optimize import minimize_scalar
 from matplotlib import pyplot as plt
 # from collections.abc import Iterable
 from copy import deepcopy
 import matplotlib as mpl
+from typing import Union
 mpl.rcParams.update({"font.family": "serif", "font.size": 11})
 plt.style.use("seaborn-deep")
 
 
 __all__ = ('get_state_space_from_file', 'lateral_controller', 'longitudinal_controller',
            'get_lateral_state_space', 'get_longitudinal_state_space', 'nu_gap', 'ncrs_margin',
-           "winding_number_condition")
-
-
-def plot_frequency_respons(sys: TransferFunction):
-    mag, phase, omega = bode_plot(sys)
+           "winding_number_condition", 'init_airspeed_controller',
+           'init_gs_controller', 'init_robust_controller')
 
 
 def get_state_space_from_file(filename: str) -> Sequence:
-    with open(filename, 'r') as f:
-        data = json.load(f)
-        A = data['A']
-        B = data['B']
-        C = data['C']
-        D = data['D']
-    return np.matrix(A), np.matrix(B), np.matrix(C), np.matrix(D)
+    try:
+        with open(filename, 'r') as f:
+            data = json.load(f)
+            A = data['A']
+            B = data['B']
+            C = data['C']
+            D = data['D']
+        return StateSpaceMatrices(A, B, C, D)
+    except FileNotFoundError:
+        raise(FileNotFoundError)
 
 
-def get_lateral_state_space(*argv) -> Sequence:
-    if len(argv) == 1:
-        state_space_filename = argv[0]
-        A, B, _, _ = get_state_space_from_file(state_space_filename)
-    elif len(argv) == 4:
-        A = argv[0]
-        B = argv[1]
+def get_lateral_state_space(ss_model: Union[str, StateSpaceMatrices]) -> Sequence:
+    """
+    Get lateral state-space from full state-space modell.
+    :param ss_model: filename or StateSpaceMatrices representation of state space model
+
+    """
+    if isinstance(ss_model, str):
+        A, B, _, _ = get_state_space_from_file(ss_model)
+    elif isinstance(ss_model, StateSpaceMatrices):
+        A = np.array(ss_model.A)
+        B = np.array(ss_model.B)
     lateral_index = np.array([1, 7, 11, 13, 15])  # [delta_a, roll, vy, ang_rate_x, ang_rate_z]
     A_lat = A[lateral_index[:, None], lateral_index]
     B_lat = B[lateral_index[:, None], 1]
@@ -52,13 +62,17 @@ def get_lateral_state_space(*argv) -> Sequence:
     return A_lat, B_lat, C_lat, D_lat
 
 
-def get_longitudinal_state_space(*argv) -> Sequence:
-    if len(argv) == 1:
-        state_space_filename = argv[0]
-        A, B, _, _ = get_state_space_from_file(state_space_filename)
-    elif len(argv) == 4:
-        A = argv[0]
-        B = argv[1]
+def get_longitudinal_state_space(ss_model: Union[str, StateSpaceMatrices]) -> Sequence:
+    """
+    Get longitudinal state-space from full state-space modell.
+    :param ss_model: filename or StateSpaceMatrices representation of state space model
+
+    """
+    if isinstance(ss_model, str):
+        A, B, _, _ = get_state_space_from_file(ss_model)
+    elif isinstance(ss_model, StateSpaceMatrices):
+        A = ss_model.A
+        B = ss_model.B
     A = np.matrix(A)
     B = np.matrix(B)
     # [delta_e, delta_t, pitch, vx, vz, ang_rate_y]
@@ -73,25 +87,25 @@ def get_longitudinal_state_space(*argv) -> Sequence:
     return A_lon, B_lon, C_lon, D_lon
 
 
-def plot_respons(t: np.ndarray, states: np.ndarray):
-    fig = plt.figure()
-
-    for i in range(states.shape[0]):
-        ax = fig.add_subplot(3, 4, i+1)
-        ax.plot(t, states[i, :].transpose())
-        ax.set_xlabel("Time")
-        ax.set_ylabel(f"State {i}")
-    return fig
-
-
 def check_margins(controller: TransferFunction, nominal_plant: TransferFunction,
                   worst_case_upper: TransferFunction, worst_case_lower: TransferFunction,
-                  phase_m: float = 0.45, gain_m: float = 2, stab_m=0.50):
+                  phase_m: float = 0.45, gain_m: float = 2, stab_m=0.50) -> bool:
+    """
+    Check gain, phase and stability margins for worst-case and nominal plants.
+    :param controller: Transfer function object of linear controller
+    :param nominal plant: Transfer function object of nominal plant
+    :param worst_case_upper: Transfer function object of Worst-case upper plant
+    :param worst_case_lower: Transfer function object of Worst-case lower plant
+    :param phase_m: Minimum acceptable phase margin
+    :param gain_m:  Minimum acceptable gain margin
+    :param stab_m:  Minimum acceptable stability margin
+
+    returns: True if all margins are ok. False if not.
+    """
     open_loops = []
     open_loops.append(worst_case_lower*controller)
     open_loops.append(worst_case_upper*controller)
     open_loops.append(nominal_plant*controller)
-
     for open_loop in open_loops:
         gm, pm, sm, _, _, _ = stability_margins(open_loop)
         if gm < gain_m or pm < phase_m or sm < stab_m:
@@ -166,7 +180,6 @@ def winding_number_condition(plant_1: TransferFunction, plant_2: TransferFunctio
 
     def f(x):
         p = abs(evalfr(1+plant_2_c*plant_1, 1j*x))
-        p = abs(10*x - 2*x**2 - 10)
         return p
     min_obj = minimize_scalar(f, method="golden")
     if f(min_obj.x) == 0:
@@ -189,25 +202,10 @@ def winding_number_condition(plant_1: TransferFunction, plant_2: TransferFunctio
     return wno + eta_1 - eta_2 - eta_0 == 0
 
 
-def performance_requirements(controller: TransferFunction, plant: TransferFunction,
-                             overshoot_threshold: float, step_size: float = 0.5,
-                             sim_time: float = 10) -> bool:
-    OL = controller*plant
-    CL = feedback(OL, 1)
-    linsys = LinearIOSystem(tf2ss(CL))
-    t = np.linspace(0, sim_time, sim_time*5, endpoint=True)
-    u = np.array([step_size, ]*(len(t))).transpose()
-    t, yout = input_output_response(linsys, U=u, T=t, method="BDF")
-    overshoot = (max(yout)-step_size)/step_size
-    return overshoot < overshoot_threshold
-
-# -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-
-
-def lateral_controller(ss_nom_filename: str, ss_wc_lower_fname: str, ss_wc_upper_fname: str,
-                       controller_filename_out: str = None) -> tuple:
+def lateral_controller(nominal_ss: StateSpaceMatrices,
+                       boundary_ss=Tuple[StateSpaceMatrices]) -> StateSpaceMatrices:
     """
-        :param controller_filename_out: Write to filename
+        :param controller_filename_out: Write-to filename
         :param ss_nom_filename: nominal plant filename
         :param ss_wc_lower_fname: worst case lower filename
         :param ss_wc_upper_fname: worst case upper filename
@@ -215,11 +213,11 @@ def lateral_controller(ss_nom_filename: str, ss_wc_lower_fname: str, ss_wc_upper
         returns: A, B, C, D state space matrices of the synthesized controller
     """
 
-    A_lat, B_lat, C_lat, D_lat = get_lateral_state_space(ss_nom_filename)
+    A_lat, B_lat, C_lat, D_lat = get_lateral_state_space(nominal_ss)
     lateral_statespace = StateSpace(A_lat, B_lat, C_lat, D_lat)
 
-    A_wcl, B_wcl, C_wcl, D_wcl = get_lateral_state_space(ss_wc_lower_fname)
-    A_wcu, B_wcu, C_wcu, D_wcu = get_lateral_state_space(ss_wc_upper_fname)
+    A_wcl, B_wcl, C_wcl, D_wcl = get_lateral_state_space(boundary_ss[0])
+    A_wcu, B_wcu, C_wcu, D_wcu = get_lateral_state_space(boundary_ss[1])
 
     worst_case_lower_tf = ss2tf(A_wcl, B_wcl, C_wcl, D_wcl)
     worst_case_upper_tf = ss2tf(A_wcu, B_wcu, C_wcu, D_wcu)
@@ -228,121 +226,97 @@ def lateral_controller(ss_nom_filename: str, ss_wc_lower_fname: str, ss_wc_upper
     # Filter design Variables:
     M = 2.0
     w_0 = 1  # min_freq
-    A_fact = 0.0001
-    margins = True
+    A_fact = 0.0002
     nu_gap_l = nu_gap(lateral_tf, worst_case_lower_tf)
     nu_gap_u = nu_gap(lateral_tf, worst_case_upper_tf)
     omega_step = 0.1
-    while w_0 < 10:
+
+    freq_max = 10
+    while w_0 < freq_max:
         w_0 = w_0 + omega_step
-        W_C = tf([1.2], [1])
-        # W_S = tf([1/M, w_0], [1, w_0*A_fact])
         W_S = tf([1/M, 2*w_0/np.sqrt(M), w_0**2], [1, 2*w_0*np.sqrt(A_fact), (w_0**2)*A_fact])
+        W_C = tf([1], [1])
         W_T = tf([1, w_0/M], [A_fact, w_0])
         Plant = augw(lateral_statespace, W_S, W_C, W_T)
         K_tmp, CL_tmp, gam_tmp, rcond_tmp = hinfsyn(Plant, 1, 1, 0.01)
+
         controller = ss2tf(K_tmp.A, K_tmp.B, K_tmp.C, K_tmp.D)
 
         # Stability-requirements
-        robust_margin = ncrs_margin(lateral_tf, controller)
+        robust_margin = 1/gam_tmp
         stability = nu_gap_l < robust_margin and nu_gap_u < robust_margin
 
         # Robustness-requirements
         margins = check_margins(controller, lateral_statespace,
-                                worst_case_upper_tf, worst_case_lower_tf, stab_m=0.6)
+                                worst_case_upper_tf, worst_case_lower_tf, stab_m=0.7)
 
-        # Performance-requirements
-        perf_req = performance_requirements(controller, lateral_tf, 0.27)
-
-        if stability and margins and perf_req:
+        if stability and margins:
             K, _, gam, _ = K_tmp, CL_tmp, gam_tmp, rcond_tmp
         else:
             break
+
     print(f"Lateral performance value (gamma) {gam}")
     print(f"Latereal controller crossover frequency (w_0) {w_0-omega_step}")
 
-    # Write controller to file:
-    if controller_filename_out is not None:
-        lat_controller = {
-            'A': (K.A).tolist(),
-            'B': (K.B).tolist(),
-            'C': (K.C).tolist(),
-            'D': (K.D).tolist()
-        }
-        with open(controller_filename_out, 'w') as outfile:
-            json.dump(lat_controller, outfile, indent=2, sort_keys=True)
-        print(f"Lateral controller written to {controller_filename_out}")
-    return np.array(K.A), np.array(K.B), np.array(K.C), np.array(K.D)
+    return StateSpaceMatrices(K.A, K.B, K.C, K.D)
 
 
-def longitudinal_controller(ss_nom_filename: str, ss_wc_lower_fname: str, ss_wc_upper_fname: str,
-                            controller_filename_out: str = None) -> tuple:
+def longitudinal_controller(nominal_ss: StateSpaceMatrices,
+                            boundary_ss=Tuple[StateSpaceMatrices]) -> StateSpaceMatrices:
     """
-        :param controller_filename_out: Write to filename
-        :param ss_nom_filename: nominal plant filename
-        :param ss_wc_lower_fname: worst case lower filename
-        :param ss_wc_upper_fname: worst case upper filename
+        :param nominal_ss: nomnial plant used in hinf-synthesis
+        :param boundary_ss: tuple of worst case plant used for gap-metric robustness requirements
 
-        returns: A, B, C, D state space matrices of the synthesized controller
+        returns: StateSpaceMatrices pf controller
     """
 
-    A_lon, B_lon, C_lon, D_lon = get_longitudinal_state_space(ss_nom_filename)
+    A_lon, B_lon, C_lon, D_lon = get_longitudinal_state_space(nominal_ss)
     longitudinal_ss = StateSpace(A_lon, B_lon, C_lon, D_lon)
 
-    A_wcl, B_wcl, C_wcl, D_wcl = get_longitudinal_state_space(ss_wc_lower_fname)
-    A_wcu, B_wcu, C_wcu, D_wcu = get_longitudinal_state_space(ss_wc_upper_fname)
+    A_wcl, B_wcl, C_wcl, D_wcl = get_longitudinal_state_space(boundary_ss[0])
+    A_wcu, B_wcu, C_wcu, D_wcu = get_longitudinal_state_space(boundary_ss[1])
 
     worst_case_lower_tf = ss2tf(A_wcl, B_wcl, C_wcl, D_wcl)
     worst_case_upper_tf = ss2tf(A_wcu, B_wcu, C_wcu, D_wcu)
     long_tf = ss2tf(longitudinal_ss)
+
     # Initial filter design:
     M = 2
-    w_0 = 5
+    w_0 = 1
     A_fact = 0.001
 
     nu_gap_l = nu_gap(long_tf, worst_case_lower_tf)
     nu_gap_u = nu_gap(long_tf, worst_case_upper_tf)
-    omega_step = 0.2
-    while w_0 < 15:
+    omega_step = 0.1
+    max_freq = 13.8
+    while w_0 < max_freq:
         w_0 = w_0 + omega_step
-        W_C = tf([0.1], [1])
+        W_C = tf([1], [1])
         W_S = tf([1/M, w_0], [1, w_0*A_fact])
         W_T = tf([1, w_0/M], [A_fact, w_0])
 
         Plant = augw(longitudinal_ss, W_S, W_C, W_T)
-        K_tmp, CL_tmp, gam_tmp, rcond_tmp = hinfsyn(Plant, 1, 1, 0.01)
+
+        K_tmp, CL_tmp, gam_tmp, _ = hinfsyn(Plant, 1, 1, 0.001)
         controller = ss2tf(K_tmp.A, K_tmp.B, K_tmp.C, K_tmp.D)
 
         # Stability-requirements
-        robust_margin = ncrs_margin(long_tf, controller)
+        robust_margin = 1/gam_tmp
         stability = nu_gap_l < robust_margin and nu_gap_u < robust_margin
 
         # Robustness-requirements
         margins = check_margins(controller, long_tf,
                                 worst_case_upper_tf, worst_case_lower_tf, stab_m=0.5)
 
-        # Performance-requirements
-        perf_req = performance_requirements(controller, long_tf, 0.1)
-        if stability and margins and perf_req:
-            K, _, gam, _ = K_tmp, CL_tmp, gam_tmp, rcond_tmp
+        if stability and margins:
+            K, _, gam = K_tmp, CL_tmp, gam_tmp
         else:
             break
 
     print(f"Longitudinal performance value (gamma) {gam}")
     print(f"Longitudinal controller crossover frequency (w_0) {w_0-omega_step}")
-    if controller_filename_out is not None:
-        lon_controller = {
-            'A': (K.A).tolist(),
-            'B': (K.B).tolist(),
-            'C': (K.C).tolist(),
-            'D': (K.D).tolist()
-        }
-        with open(controller_filename_out, 'w') as outfile:
-            json.dump(lon_controller, outfile, indent=2, sort_keys=True)
 
-        print(f"Longitudinal controller written to {controller_filename_out}")
-
-    return np.array(K.A), np.array(K.B), np.array(K.C), np.array(K.D)
+    return StateSpaceMatrices(A=K.A, B=K.B, C=K.C, D=K.D)
 
 
 def nu_gap(P_1: TransferFunction, P_2: TransferFunction, tol=1e-3) -> float:
@@ -362,46 +336,32 @@ def nu_gap(P_1: TransferFunction, P_2: TransferFunction, tol=1e-3) -> float:
         min_obj = -max_obj
         return min_obj
 
-    nu_gap = minimize_scalar(f, bounds=(0.0001, 10**12), method='bounded')
+    nu_gap = minimize_scalar(f, bounds=(0.0001, 2**12), method='bounded')
     return (-f(nu_gap.x))
 
 
-def find_icing_level_minimize_mu_gap():
-    # Longitudinal icing level:
-    A_1, B_1, C_1, D_1 = get_longitudinal_state_space(
-        './examples/skywalkerX8_analysis/SkywalkerX8_state_space_models/skywalkerx8_linmod.json')
-    P_1 = ss2tf(A_1, B_1, C_1, D_1)
-    A_2, B_2, C_2, D_2 = get_longitudinal_state_space('./examples/skywalkerX8_analysis\
-        /SkywalkerX8_state_space_models/skywalkerx8_linmod_icing10.json')
-    P_2 = ss2tf(A_2, B_2, C_2, D_2)
-    nu_gap_min = nu_gap(P_1, P_2)
-    longitudinal_icing_level = 1.0
-    for i in range(1, 10):
-        A_3, B_3, C_3, D_3 = get_longitudinal_state_space('./examples/skywalkerX8_analysis\
-            /SkywalkerX8_state_space_models/skywalkerx8_linmod_icing0'+str(i)+'.json')
-        P_3 = ss2tf(A_3, B_3, C_3, D_3)
-        nu_gap_clean = nu_gap(P_1, P_3)
-        nu_gap_iced = nu_gap(P_2, P_3)
-        if max([nu_gap_clean, nu_gap_iced]) < nu_gap_min:
-            nu_gap_min = max([nu_gap_clean, nu_gap_iced])
-            longitudinal_icing_level = i*0.1
-    # Lateral icing level
-    A_1, B_1, C_1, D_1 = get_lateral_state_space(
-        './examples/skywalkerX8_analysis/SkywalkerX8_state_space_models/skywalkerx8_linmod.json')
-    P_1 = ss2tf(A_1, B_1, C_1, D_1)
-    A_2, B_2, C_2, D_2 = get_lateral_state_space('./examples/skywalkerX8_analysis\
-        /SkywalkerX8_state_space_models/skywalkerx8_linmod_icing10.json')
-    P_2 = ss2tf(A_2, B_2, C_2, D_2)
-    nu_gap_min = nu_gap(P_1, P_2)
-    lateral_icing_level = 1.0
-    for i in range(1, 10):
-        A_3, B_3, C_3, D_3 = get_lateral_state_space('./examples/skywalkerX8_analysis\
-            /SkywalkerX8_state_space_models/skywalkerx8_linmod_icing0'+str(i)+'.json')
-        P_3 = ss2tf(A_3, B_3, C_3, D_3)
-        nu_gap_clean = nu_gap(P_1, P_3)
-        nu_gap_iced = nu_gap(P_2, P_3)
-        if max([nu_gap_clean, nu_gap_iced]) < nu_gap_min:
-            nu_gap_min = max([nu_gap_clean, nu_gap_iced])
-            lateral_icing_level = i*0.1
+def init_robust_controller(controller: SaturatedStateSpaceController,
+                           dir: Direction) -> NonlinearIOSystem:
+    if dir == Direction.LONGITUDINAL:
+        return pitch_hinf_controller(controller)
+    elif dir == Direction.LATERAL:
+        return roll_hinf_controller(controller)
 
-    return longitudinal_icing_level, lateral_icing_level
+
+def init_gs_controller(controllers: Sequence[SaturatedStateSpaceMatricesGS], dir: Direction,
+                       switch_signal: str) -> NonlinearIOSystem:
+    if dir == Direction.LONGITUDINAL:
+        return pitch_gain_scheduled_controller(controllers, switch_signal)
+    elif dir == Direction.LATERAL:
+        return roll_gain_scheduled_controller(controllers, switch_signal)
+
+
+def init_airspeed_controller(kp: float = 0.123, ki: float = 0.09, kaw: float = 2,
+                             throttle_t: float = 0.58) -> NonlinearIOSystem:
+    airspeed_controller_params = {
+        "kp": kp,
+        "ki": ki,
+        "kaw": kaw,
+        "throttle_trim": throttle_t
+    }
+    return airspeed_pi_controller(airspeed_controller_params)

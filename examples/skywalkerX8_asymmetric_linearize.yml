@@ -1,10 +1,11 @@
 actuator:
+  type: flying_wings
   elevon_time_constant: 0.28647549202
   motor_time_constant: 0.2
-  type: flying_wings
 aircraft:
-  icing: 1
-  type: skywalkerX8
+  icing_left_wing: 0.0
+  icing_right_wing: 0.0
+  type: skywalkerX8_asymetric
 init_control:
   aileron_deflection: 0.0005905536685995636
   elevator_deflection: -0.10529351900259049
