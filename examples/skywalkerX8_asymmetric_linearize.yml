@@ -1,0 +1,26 @@
+actuator:
+  type: flying_wings
+  elevon_time_constant: 0.28647549202
+  motor_time_constant: 0.2
+aircraft:
+  icing_left_wing: 0.0
+  icing_right_wing: 0.0
+  type: skywalkerX8_asymetric
+init_control:
+  aileron_deflection: 0.0005905536685995636
+  elevator_deflection: -0.10529351900259049
+  rudder_deflection: 0.0
+  throttle: 0.58
+init_state:
+  ang_rate_x: 0.0
+  ang_rate_y: 0.0
+  ang_rate_z: 0.0
+  pitch: 0.0369212836023969
+  roll: -0.00033310605950459315
+  vx: 21.401240221720634
+  vy: -0.0026550787747161154
+  vz: 0.7905196567418877
+  x: 0.0
+  y: 0.0
+  yaw: 0.0
+  z: -100

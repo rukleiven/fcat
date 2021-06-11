@@ -1,7 +1,7 @@
 import click
 from yaml import dump, load
-import json
-from fcat.inner_loop_controller import longitudinal_controller, lateral_controller
+from fcat.inner_loop_controller import (longitudinal_controller, lateral_controller,
+                                        SaturatedStateSpaceMatricesGS, StateSpaceMatrices)
 from fcat import (
     aircraft_property_from_dct, actuator_from_dct, ControlInput, State,
     build_nonlin_sys, no_wind)
@@ -19,7 +19,7 @@ def update_icing_level(infile: str, icing_level: float):
         dump(data, f)
 
 
-def linearize_system(infile: str, index: int) -> str:
+def linearize_system(infile: str) -> str:
     with open(infile) as f:
         data = load(f)
     aircraft = aircraft_property_from_dct(data['aircraft'])
@@ -37,21 +37,8 @@ def linearize_system(infile: str, index: int) -> str:
     states_lin = np.concatenate((ueq, xeq))
     linearized_sys = aircraft_with_actuator.linearize(states_lin, ueq)
     A, B, C, D = ssdata(linearized_sys)
-    linsys = {
-        'A': np.array(A).tolist(),
-        'B': np.array(B).tolist(),
-        'C': np.array(C).tolist(),
-        'D': np.array(D).tolist(),
-        'xeq': xeq.tolist(),
-        'ueq': ueq.tolist()
-    }
-
-    f_name = "examples/skywalkerX8_analysis/ss_mod_gs/"
-    f_name += "skywalkerX8_linmod_icing" + str(index) + ".json"
-    with open(f_name, 'w') as outfile:
-        json.dump(linsys, outfile, indent=2, sort_keys=True)
-    print(f"Linear model written to {f_name}")
-    return f_name
+    linsys = StateSpaceMatrices(A, B, C, D)
+    return linsys
 
 
 def upper_lower_icing_levels(icing_levels: Sequence) -> list:
@@ -80,62 +67,42 @@ def upper_lower_icing_levels(icing_levels: Sequence) -> list:
 def gscs(infile: str, longs_outfile: str, latgs_outfile: str, icing_levels: Sequence):
     """
     Run controller synthesis
+
+    param:
     """
-    longitudinal_controllers = {}
-    lateral_controllers = {}
     icing_levels = list(set(icing_levels))
     icing_levels.sort()
     ss_models = []
+
     for i in range(len(icing_levels)):
         update_icing_level(infile, icing_levels[i])
-        f_name = linearize_system(infile, i)
-        ss_models.append(f_name)
+        ss_mod = linearize_system(infile)
+        ss_models.append(ss_mod)
 
     lower_upper_icing = upper_lower_icing_levels(icing_levels)
-    lower_upper_fnames = []
-    name_indx = len(icing_levels)
+    lower_upper_ss_models = []
     for lower_upper in lower_upper_icing:
         update_icing_level(infile, lower_upper[0])
-        f_name_lower = linearize_system(infile, name_indx)
-        name_indx += 1
+        linsys_lower = linearize_system(infile)
         update_icing_level(infile, lower_upper[1])
-        f_name_upper = linearize_system(infile, name_indx)
-        name_indx += 1
-        lower_upper_fnames.append((f_name_lower, f_name_upper))
+        linsys_upper = linearize_system(infile)
+        lower_upper_ss_models.append((linsys_lower, linsys_upper))
 
+    longitudinal_controllers = []
+    lateral_controllers = []
     for i in range(len(ss_models)):
-        assert len(ss_models) == len(lower_upper_fnames)
-        l_u_fname_tuple = lower_upper_fnames[i]
-        lower_fname = l_u_fname_tuple[0]
-        upper_fname = l_u_fname_tuple[1]
+        assert len(ss_models) == len(lower_upper_ss_models)
+        l_u_ssmod_tuple = lower_upper_ss_models[i]
         # Longitudinal controller synthesis
-        A_lon, B_lon, C_lon, D_lon = longitudinal_controller(ss_models[i], lower_fname, upper_fname)
+        K = longitudinal_controller(ss_models[i], l_u_ssmod_tuple)
 
-        controller = {
-            'icing_level': icing_levels[i],
-            'A': A_lon.tolist(),
-            'B': B_lon.tolist(),
-            'C': C_lon.tolist(),
-            'D': D_lon.tolist()
-        }
-
-        longitudinal_controllers['lon_contoller' +
-                                 str(len(longitudinal_controllers.keys()))] = controller
-
+        longitudinal_controllers.append(SaturatedStateSpaceMatricesGS(A=K.A, B=K.B,
+                                                                      C=K.C, D=K.D,
+                                                                      lower=-0.4, upper=0.4,
+                                                                      switch_signal=icing_levels[i]))
         # Lateral controller synthesis
-        A_lat, B_lat, C_lat, D_lat = lateral_controller(ss_models[i], lower_fname, upper_fname)
-        controller = {
-            'icing_level': icing_levels[i],
-            'A': A_lat.tolist(),
-            'B': B_lat.tolist(),
-            'C': C_lat.tolist(),
-            'D': D_lat.tolist()
-        }
-        lateral_controllers['lat_controller'+str(len(lateral_controllers.keys()))] = controller
-
-    if longs_outfile is not None:
-        with open(longs_outfile, 'w') as outfile:
-            json.dump(longitudinal_controllers, outfile, indent=2, sort_keys=True)
-    if latgs_outfile is not None:
-        with open(latgs_outfile, 'w') as outfile:
-            json.dump(lateral_controllers, outfile, indent=2, sort_keys=True)
+        K = lateral_controller(ss_models[i], l_u_ssmod_tuple)
+        lateral_controllers.append(SaturatedStateSpaceMatricesGS(A=K.A, B=K.B,
+                                                                 C=K.C, D=K.D,
+                                                                 lower=-0.4, upper=0.4,
+                                                                 switch_signal=icing_levels[i]))

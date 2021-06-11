@@ -1,7 +1,6 @@
 from typing import NamedTuple, Tuple
 from fcat import AircraftProperties, ControlInput, State
 import numpy as np
-# (C_D_a_data, C_D_q_data, C_D_delta_e_data, C_L_a_data, C_L_q_data, C_L_delta_e_data)
 from fcat.skywalkerX8_data import *
 from fcat.utilities import calc_airspeed, calc_angle_of_attack, calc_angle_of_sideslip,\
     calc_rotational_airspeed, wind2body
@@ -174,6 +173,14 @@ class IcedSkywalkerX8Properties(AircraftProperties):
     def update_params(self, params: dict) -> None:
         self.icing = params.get('icing', self.icing)
 
+    def is_known_output(self, output: str) -> bool:
+        return output in ['icing']
+
+    def get_output(self, output: str) -> float:
+        if output == 'icing':
+            return self.icing
+        raise ValueError(f"Can not calculate return {output}")
+
 
 class AsymetricIcedSkywalkerX8Properties(AircraftProperties):
     """
@@ -311,6 +318,18 @@ class AsymetricIcedSkywalkerX8Properties(AircraftProperties):
 
     def inertia_matrix(self):
         return self.left_wing.inertia_matrix()
+
+    def is_known_output(self, output: str) -> bool:
+        return output in ['icing', "icing_left_wing", "icing_right_wing"]
+
+    def get_output(self, output: str) -> float:
+        if output == 'icing':
+            return (self.left_wing.icing + self.right_wing.icing)/2.0
+        elif output == "icing_left_wing":
+            return self.left_wing.icing
+        elif output == "icing_right_wing":
+            return self.right_wing.icing
+        raise ValueError(f"Can not calculate return {output}")
 
 
 def iced_clean_split(data: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
